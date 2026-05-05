@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { useStore } from '../store/useStore';
+import * as dbClient from '../services/dbClient';
 
 export type ResultData = any[] | null;
 export type WriteInfo = any | null;
@@ -12,8 +14,9 @@ export function useQueryExecution() {
   const [history, setHistory] = useState<string[]>([]);
 
   const execute = useCallback(async (query: string) => {
-    if (!query.trim()) return;
-    
+    const sessionId = useStore.getState().activeSessionId;
+    if (!query.trim() || !sessionId) return;
+
     setIsRunning(true);
     setError(null);
     setResults(null);
@@ -21,9 +24,9 @@ export function useQueryExecution() {
 
     const t0 = performance.now();
     try {
-      const res = await window.sqlitenav.executeQuery(query);
+      const res = await dbClient.executeQuery(sessionId, query);
       setExecTime(performance.now() - t0);
-      
+
       if (res.success) {
         if (Array.isArray(res.data)) {
           setResults(res.data);
@@ -50,15 +53,5 @@ export function useQueryExecution() {
     setExecTime(null);
   }, []);
 
-  return {
-    results,
-    writeInfo,
-    error,
-    isRunning,
-    execTime,
-    history,
-    execute,
-    clear,
-    setHistory
-  };
+  return { results, writeInfo, error, isRunning, execTime, history, execute, clear, setHistory };
 }

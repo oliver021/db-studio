@@ -1,10 +1,14 @@
 import { Database, FolderOpen, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck } from 'lucide-react';
+import type { Capabilities, ActiveView } from '../../store/useStore';
 
 interface SidebarProps {
+  /** sessionId of the active connection (null = no connection). */
   connectionString: string | null;
+  connectionName?: string;
+  capabilities: Capabilities | null;
   onOpenDatabase: () => void;
-  activeView: 'data' | 'query' | 'schema-graph' | 'maintenance';
-  onViewChange: (view: 'data' | 'query' | 'schema-graph' | 'maintenance') => void;
+  activeView: ActiveView;
+  onViewChange: (view: ActiveView) => void;
   tables: any[];
   views: any[];
   activeTableName: string | null;
@@ -13,6 +17,8 @@ interface SidebarProps {
 
 export default function Sidebar({
   connectionString,
+  connectionName,
+  capabilities,
   onOpenDatabase,
   activeView,
   onViewChange,
@@ -21,13 +27,15 @@ export default function Sidebar({
   activeTableName,
   onTableSelect,
 }: SidebarProps) {
+  const showMaintenance = !!capabilities?.hasMaintenance;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo"><Database size={18} /></div>
         <div>
-          <h1 className="sidebar-title">SQLiteNav</h1>
-          <p className="sidebar-subtitle">SQLite Navigator</p>
+          <h1 className="sidebar-title">DB Studio</h1>
+          <p className="sidebar-subtitle">Database Manager</p>
         </div>
       </div>
 
@@ -60,15 +68,17 @@ export default function Sidebar({
                   <span className="nav-item-label">Schema Graph</span>
                 </button>
               </li>
-              <li>
-                <button
-                  className={`nav-item${activeView === 'maintenance' ? ' active' : ''}`}
-                  onClick={() => onViewChange('maintenance')}
-                >
-                  <ShieldCheck size={14} className="nav-item-icon" />
-                  <span className="nav-item-label">Maintenance</span>
-                </button>
-              </li>
+              {showMaintenance && (
+                <li>
+                  <button
+                    className={`nav-item${activeView === 'maintenance' ? ' active' : ''}`}
+                    onClick={() => onViewChange('maintenance')}
+                  >
+                    <ShieldCheck size={14} className="nav-item-icon" />
+                    <span className="nav-item-label">Maintenance</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         )}
@@ -121,7 +131,7 @@ export default function Sidebar({
           <div className="connection-indicator">
             <span className="status-dot connected" />
             <span className="connection-path" title={connectionString}>
-              {connectionString.split(/[/\\]/).pop()}
+              {connectionName ?? connectionString}
             </span>
           </div>
         </div>

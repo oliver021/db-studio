@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mermaid from 'mermaid';
 import { useStore } from '../../store/useStore';
+import * as dbClient from '../../services/dbClient';
 import {
   ZoomIn, ZoomOut, Maximize2, Download, Copy, X,
   GitBranch, Table2, ArrowRight, FileCode2,
@@ -22,7 +23,7 @@ interface Relation {
 interface TableDef {
   name: string;
   type: string;
-  columns: { name: string; type: string; pk: number; notnull: number }[];
+  columns: { name: string; type: string; pk: number | boolean; notnull?: number; notNull?: boolean }[];
 }
 
 /* ==========================================================================
@@ -91,9 +92,9 @@ function generateMermaidER(tables: TableDef[], relations: Relation[]): string {
     for (const col of table.columns) {
       const typeStr = mapSqliteType(col.type);
       let constraint = '';
-      if (col.pk === 1) constraint = ' PK';
+      if (col.pk === 1 || col.pk === true) constraint = ' PK';
       else if (fkSet.has(`${table.name}.${col.name}`)) constraint = ' FK';
-      const nn = col.notnull ? '"NOT NULL"' : '';
+      const nn = (col.notnull || col.notNull) ? '"NOT NULL"' : '';
       lines.push(`        ${typeStr} ${sanitize(col.name)}${constraint} ${nn}`.trimEnd());
     }
     lines.push('    }');
@@ -125,8 +126,8 @@ function generatePlantUML(tables: TableDef[], relations: Relation[]): string {
   for (const table of tables) {
     if (table.type !== 'table') continue;
     lines.push(`entity "${table.name}" {`);
-    const pkCols = table.columns.filter(c => c.pk === 1);
-    const otherCols = table.columns.filter(c => c.pk !== 1);
+    const pkCols = table.columns.filter(c => c.pk === 1 || c.pk === true);
+    const otherCols = table.columns.filter(c => c.pk !== 1 && c.pk !== true);
 
     for (const col of pkCols) {
       lines.push(`  * ${col.name} : ${col.type || 'TEXT'} <<PK>>`);
@@ -136,7 +137,7 @@ function generatePlantUML(tables: TableDef[], relations: Relation[]): string {
     }
     for (const col of otherCols) {
       const fkTag = fkSet.has(`${table.name}.${col.name}`) ? ' <<FK>>' : '';
-      const nn = col.notnull ? ' NOT NULL' : '';
+      const nn = (col.notnull || col.notNull) ? ' NOT NULL' : '';
       lines.push(`  ${col.name} : ${col.type || 'TEXT'}${nn}${fkTag}`);
     }
     lines.push('}');
@@ -163,8 +164,8 @@ function generateDDL(tables: TableDef[], relations: Relation[]): string {
     const colDefs: string[] = [];
     for (const col of table.columns) {
       let def = `  "${col.name}" ${col.type || 'TEXT'}`;
-      if (col.pk === 1) def += ' PRIMARY KEY';
-      if (col.notnull) def += ' NOT NULL';
+      if (col.pk === 1 || col.pk === true) def += ' PRIMARY KEY';
+      if (col.notnull || col.notNull) def += ' NOT NULL';
       colDefs.push(def);
     }
     // Add FK constraints
@@ -186,7 +187,7 @@ function generateDDL(tables: TableDef[], relations: Relation[]): string {
 let renderCounter = 0;
 
 export default function SchemaGraph() {
-  const { schema } = useStore();
+  const { schema, activeSessionId } = useStore(s => ({ schema: s.schema, activeSessionId: s.activeSessionId }));
 
   const [relations, setRelations] = useState<Relation[]>([]);
   const [svg, setSvg] = useState('');
@@ -207,7 +208,8 @@ export default function SchemaGraph() {
     let active = true;
     async function load() {
       try {
-        const rels = await window.sqlitenav.getRelations();
+        if (!activeSessionId) return;
+        const rels = await dbClient.getRelations(activeSessionId);
         if (active) setRelations(rels);
       } catch {
         // No FK support or no DB
@@ -215,7 +217,7 @@ export default function SchemaGraph() {
     }
     load();
     return () => { active = false; };
-  }, [schema]);
+  }, [schema, activeSessionId]);
 
   /* ----- Generate & render diagram ----- */
   useEffect(() => {

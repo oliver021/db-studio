@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 // Hooks & Utils
 import { useToast } from './hooks/useToast';
 import { getPrimaryKey } from './utils/db';
+import * as dbClient from './services/dbClient';
 
 // Components
 import Sidebar from './components/Layout/Sidebar';
@@ -25,7 +26,8 @@ import MaintenanceView from './components/Maintenance/MaintenanceView';
 
 export default function App() {
   const {
-    connectionString, schema, setConnection, refreshSchema,
+    activeSessionId, activeSession,
+    openDialog,
     activeTableName, setActiveTable, activeTableData,
     currentPage, pageSize, totalRows,
     setPage, setPageSize, isLoading,
@@ -36,9 +38,12 @@ export default function App() {
     activeView, setActiveView,
   } = useStore();
 
+  const session = activeSession();
+  const schema = session?.schema ?? [];
+  const capabilities = session?.capabilities ?? null;
+
   const { toasts, push: toast } = useToast();
 
-  // Local UI state
   const [colPickerOpen, setColPickerOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [editCell, setEditCell] = useState<{ rowIdx: number; col: string } | null>(null);
@@ -47,52 +52,48 @@ export default function App() {
   const searchTimerRef = useRef<any>(null);
   const [localSearch, setLocalSearch] = useState('');
 
-  const tables      = schema.filter(t => t.type === 'table');
-  const views       = schema.filter(t => t.type === 'view');
-  const tableDef    = schema.find(t => t.name === activeTableName);
+  const tables   = schema.filter((t: any) => t.type === 'table');
+  const views    = schema.filter((t: any) => t.type === 'view');
+  const tableDef = schema.find((t: any) => t.name === activeTableName);
   const allCols: any[] = tableDef?.columns ?? [];
   const allColNames = allCols.map((c: any) => c.name);
-  const pkCol       = getPrimaryKey(allCols);
+  const pkCol = getPrimaryKey(allCols);
 
-  // Visible columns
   const visibleNames = showAllColumns
     ? allColNames
     : (visibleColumnsMap[activeTableName ?? ''] ?? allColNames.slice(0, 8));
   const visibleCols = allCols.filter((c: any) => visibleNames.includes(c.name));
 
-  // Reset local search when table changes
   useEffect(() => { setLocalSearch(searchTerm); }, [activeTableName, searchTerm]);
 
-  const handleOpenDatabase = async () => {
-    const dbPath = await window.sqlitenav.openDialog();
-    if (dbPath) {
-      setConnection(dbPath);
-      await refreshSchema();
+  // Guard: if activeView is 'maintenance' but engine doesn't support it, fall back to 'data'
+  useEffect(() => {
+    if (activeView === 'maintenance' && capabilities && !capabilities.hasMaintenance) {
+      setActiveView('data');
     }
+  }, [activeView, capabilities]);
+
+  const handleOpenDatabase = async () => {
+    await openDialog();
   };
 
-  // Debounced search
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => setSearchTerm(value), 350);
   };
 
-  // Inline edit logic
   const startEdit = (rowIdx: number, col: string, currentValue: any) => {
     setEditCell({ rowIdx, col });
     setEditValue(currentValue != null ? String(currentValue) : '');
   };
 
   const commitEdit = async () => {
-    if (!editCell || !activeTableName || !pkCol) return;
+    if (!editCell || !activeTableName || !pkCol || !activeSessionId) return;
     const row = activeTableData[editCell.rowIdx];
     const pkVal = row[pkCol];
     const newVal = editValue === '' ? null : editValue;
-
-    const result = await window.sqlitenav.updateRow(
-      activeTableName, pkCol, pkVal, { [editCell.col]: newVal },
-    );
+    const result = await dbClient.updateRow(activeSessionId, activeTableName, pkCol, pkVal, { [editCell.col]: newVal });
     setEditCell(null);
     if (result.success) {
       toast('Row updated', 'success');
@@ -102,17 +103,14 @@ export default function App() {
     }
   };
 
-  // Actions
   const handleCopyRow = (row: any) => {
     navigator.clipboard.writeText(JSON.stringify(row, null, 2));
     toast('Row copied to clipboard', 'info');
   };
 
   const handleDeleteRow = async () => {
-    if (!deleteTarget || !activeTableName) return;
-    const result = await window.sqlitenav.deleteRow(
-      activeTableName, deleteTarget.pkCol, deleteTarget.pkVal,
-    );
+    if (!deleteTarget || !activeTableName || !activeSessionId) return;
+    const result = await dbClient.deleteRow(activeSessionId, activeTableName, deleteTarget.pkCol, deleteTarget.pkVal);
     setDeleteTarget(null);
     if (result.success) {
       toast('Row deleted', 'success');
@@ -125,7 +123,9 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar
-        connectionString={connectionString}
+        connectionString={activeSessionId}
+        connectionName={session?.name}
+        capabilities={capabilities}
         onOpenDatabase={handleOpenDatabase}
         activeView={activeView}
         onViewChange={setActiveView}
@@ -138,7 +138,7 @@ export default function App() {
       <main className="main-content">
         <header className="toolbar">
           <Breadcrumbs
-            connectionString={connectionString}
+            connectionString={activeSessionId}
             activeView={activeView}
             activeTableName={activeTableName}
           />
@@ -168,7 +168,7 @@ export default function App() {
               >
                 <SchemaGraph />
               </motion.div>
-            ) : activeView === 'maintenance' ? (
+            ) : activeView === 'maintenance' && capabilities?.hasMaintenance ? (
               <motion.div
                 key="maintenance"
                 className="table-view"
@@ -188,7 +188,6 @@ export default function App() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
               >
-                {/* Table Header / Toolbar */}
                 <div className="table-info-bar">
                   <h2 className="table-title">{activeTableName}</h2>
                   <div className="table-meta">
@@ -240,7 +239,6 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Filter Modal */}
                 {filterModalOpen && activeTableName && (
                   <FilterModal
                     columns={tableDef?.columns || []}
@@ -253,7 +251,6 @@ export default function App() {
                   />
                 )}
 
-                {/* Main Data Table */}
                 <DataTable
                   isLoading={isLoading}
                   columns={visibleCols}
@@ -292,7 +289,7 @@ export default function App() {
         </div>
 
         <StatusBar
-          connectionString={connectionString}
+          connectionString={activeSessionId}
           activeTableName={activeTableName}
           visibleColsCount={visibleCols.length}
           allColsCount={allCols.length}

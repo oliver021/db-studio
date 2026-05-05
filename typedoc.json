@@ -1,0 +1,12 @@
+{
+  "entryPoints": [
+    "electron/drivers/Driver.ts",
+    "electron/models/index.ts",
+    "electron/dialect/sqlite.ts"
+  ],
+  "out": "docs/api",
+  "name": "DB Studio — Driver API",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeInternal": true
+}

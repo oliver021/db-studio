@@ -4,76 +4,78 @@ import type { OnMount } from '@monaco-editor/react';
 import { useStore } from '../../store/useStore';
 import { Play, Trash2, History, Clock, Table2, CheckCircle } from 'lucide-react';
 
-// Config & Hooks
 import { THEMES, SQLITENAV_THEME, MIDNIGHT_THEME } from '../../config/editorThemes';
 import { useQueryExecution } from '../../hooks/useQueryExecution';
 import { createSqlCompletionProvider } from '../../utils/sqlAutocompletion';
+import * as dbClient from '../../services/dbClient';
 
-// Components
 import QueryResults from './QueryResults';
 import QueryHistory from './QueryHistory';
-
 import './QueryConsole.css';
 
 export default function QueryConsole() {
-  const { schema } = useStore();
+  const { activeSessionId, activeSession } = useStore(s => ({
+    activeSessionId: s.activeSessionId,
+    activeSession: s.activeSession,
+  }));
+  const session = activeSession();
+  const schema = session?.schema ?? [];
+  const capabilities = session?.capabilities ?? null;
+
   const {
     results, writeInfo, error, isRunning, execTime, history,
-    execute, clear
+    execute, clear,
   } = useQueryExecution();
 
-  // Advanced State
   const [inTransaction, setInTransaction] = useState(false);
   const [queryPlan, setQueryPlan] = useState<any[] | null>(null);
   const [isAutoCommit, setIsAutoCommit] = useState(true);
 
-  // UI State
   const [sql, setSql] = useState('SELECT * FROM ');
   const [theme, setTheme] = useState('sqlitenav-dark');
   const [tab, setTab] = useState<'results' | 'history'>('results');
   const [splitRatio, setSplitRatio] = useState(50);
-  
-  // Refs
+
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
-  /* ----- Actions ----- */
   const runQuery = useCallback(async () => {
     const query = editorRef.current?.getValue()?.trim();
-    if (!query) return;
-    
-    // If not auto-commit and not in transaction, start one
+    if (!query || !activeSessionId) return;
+
     if (!isAutoCommit && !inTransaction) {
-      await window.sqlitenav.beginTransaction();
+      await dbClient.beginTransaction(activeSessionId);
       setInTransaction(true);
     }
 
     setTab('results');
     setQueryPlan(null);
     execute(query);
-  }, [execute, isAutoCommit, inTransaction]);
+  }, [execute, isAutoCommit, inTransaction, activeSessionId]);
 
   const analyzeQuery = async () => {
     const query = editorRef.current?.getValue()?.trim();
-    if (!query) return;
+    if (!query || !activeSessionId || !capabilities?.supportsExplain) return;
     try {
-      const plan = await window.sqlitenav.explainQueryPlan(query);
+      const plan = await dbClient.explainQueryPlan(activeSessionId, query);
       setQueryPlan(plan);
-      setTab('results'); // Use results area for plan
+      setTab('results');
     } catch (err: any) {
       console.error(err);
     }
   };
 
   const handleCommit = async () => {
-    await window.sqlitenav.commitTransaction();
+    if (!activeSessionId) return;
+    await dbClient.commitTransaction(activeSessionId);
     setInTransaction(false);
   };
 
   const handleRollback = async () => {
-    await window.sqlitenav.rollbackTransaction();
+    if (!activeSessionId) return;
+    await dbClient.rollbackTransaction(activeSessionId);
     setInTransaction(false);
   };
 
@@ -88,7 +90,6 @@ export default function QueryConsole() {
     monacoRef.current?.editor.setTheme(newTheme);
   };
 
-  /* ----- Monaco Integration ----- */
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
@@ -97,7 +98,6 @@ export default function QueryConsole() {
     monaco.editor.defineTheme('midnight', MIDNIGHT_THEME);
     monaco.editor.setTheme(theme);
 
-    // Command: Ctrl+Enter
     editor.addAction({
       id: 'run-query',
       label: 'Run Query',
@@ -105,16 +105,13 @@ export default function QueryConsole() {
       run: runQuery,
     });
 
-    // Register our improved autocompletion
     const completionProvider = monaco.languages.registerCompletionItemProvider(
-      'sql', 
-      createSqlCompletionProvider(schema as any)
+      'sql',
+      createSqlCompletionProvider(schema as any),
     );
-
     return () => completionProvider.dispose();
   };
 
-  /* ----- Resizer Logic ----- */
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!dragging.current || !containerRef.current) return;
@@ -131,47 +128,54 @@ export default function QueryConsole() {
     };
   }, []);
 
+  const showExplain = capabilities?.supportsExplain ?? false;
+  const showTransactions = capabilities?.supportsTransactions ?? false;
+
   return (
     <div className="query-console" ref={containerRef}>
-      {/* ================= EDITOR SECTION ================= */}
       <div className="qc-editor-section" style={{ height: `${splitRatio}%` }}>
         <div className="qc-toolbar">
           <button className="qc-run-btn" onClick={runQuery} disabled={isRunning}>
             <Play size={13} />
             {isRunning ? 'Running…' : 'Run'}
           </button>
-          
-          <button className="qc-secondary-btn" onClick={analyzeQuery} title="Explain Query Plan">
-            Analyze
-          </button>
 
-          <div className="qc-divider-v" />
+          {showExplain && (
+            <button className="qc-secondary-btn" onClick={analyzeQuery} title="Explain Query Plan">
+              Analyze
+            </button>
+          )}
 
-          <div className="qc-transaction-toggle" title="Auto-commit mode">
-            <input 
-              type="checkbox" 
-              id="autocommit" 
-              checked={isAutoCommit} 
-              onChange={e => {
-                setIsAutoCommit(e.target.checked);
-                if (e.target.checked && inTransaction) handleCommit();
-              }} 
-            />
-            <label htmlFor="autocommit">Auto-commit</label>
-          </div>
+          {showTransactions && (
+            <>
+              <div className="qc-divider-v" />
+              <div className="qc-transaction-toggle" title="Auto-commit mode">
+                <input
+                  type="checkbox"
+                  id="autocommit"
+                  checked={isAutoCommit}
+                  onChange={e => {
+                    setIsAutoCommit(e.target.checked);
+                    if (e.target.checked && inTransaction) handleCommit();
+                  }}
+                />
+                <label htmlFor="autocommit">Auto-commit</label>
+              </div>
 
-          {inTransaction && (
-            <div className="qc-transaction-actions">
-              <button className="qc-commit-btn" onClick={handleCommit}>Commit</button>
-              <button className="qc-rollback-btn" onClick={handleRollback}>Rollback</button>
-            </div>
+              {inTransaction && (
+                <div className="qc-transaction-actions">
+                  <button className="qc-commit-btn" onClick={handleCommit}>Commit</button>
+                  <button className="qc-rollback-btn" onClick={handleRollback}>Rollback</button>
+                </div>
+              )}
+            </>
           )}
 
           <div className="qc-spacer" />
 
-          <select 
-            className="qc-theme-select" 
-            value={theme} 
+          <select
+            className="qc-theme-select"
+            value={theme}
             onChange={e => handleThemeChange(e.target.value)}
           >
             {THEMES.map(t => (
@@ -210,13 +214,11 @@ export default function QueryConsole() {
         </div>
       </div>
 
-      {/* ================= DIVIDER ================= */}
       <div
         className={`qc-divider${dragging.current ? ' dragging' : ''}`}
         onMouseDown={() => { dragging.current = true; }}
       />
 
-      {/* ================= RESULTS SECTION ================= */}
       <div className="qc-results-section" style={{ height: `${100 - splitRatio}%` }}>
         <div className="qc-results-header">
           <button
@@ -231,15 +233,6 @@ export default function QueryConsole() {
           >
             <History size={11} /> History
           </button>
-
-          {queryPlan && (
-            <button
-              className={`qc-tab${tab === 'results' && queryPlan ? ' active' : ''}`}
-              onClick={() => { setTab('results'); }}
-            >
-              Query Plan
-            </button>
-          )}
 
           <div className="qc-spacer" />
 
@@ -262,22 +255,19 @@ export default function QueryConsole() {
 
         <div className="qc-results-body">
           {tab === 'history' ? (
-            <QueryHistory 
-              history={history} 
+            <QueryHistory
+              history={history}
               onSelect={(h) => {
                 editorRef.current?.setValue(h);
                 setTab('results');
-              }} 
+              }}
             />
           ) : queryPlan ? (
             <div className="qc-query-plan">
               <table className="qc-results-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Parent</th>
-                    <th>Not Used</th>
-                    <th>Detail</th>
+                    <th>ID</th><th>Parent</th><th>Not Used</th><th>Detail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,11 +283,7 @@ export default function QueryConsole() {
               </table>
             </div>
           ) : (
-            <QueryResults 
-              results={results} 
-              writeInfo={writeInfo} 
-              error={error} 
-            />
+            <QueryResults results={results} writeInfo={writeInfo} error={error} />
           )}
         </div>
       </div>

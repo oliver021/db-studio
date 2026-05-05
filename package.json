@@ -12,7 +12,18 @@
     "preview": "vite preview",
     "seed": "node scripts/seed-db.js",
     "seed:crm": "node scripts/seed-crm.js",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "prepare": "husky",
+    "test": "vitest run",
+    "test:unit": "vitest run --project node",
+    "test:components": "vitest run --project browser",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "docs:gen": "typedoc"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "vitest related --run"],
+    "*.{js,json,css,md}": ["prettier --write"]
   },
   "dependencies": {
     "@heroui/pagination": "^2.2.27",
@@ -34,6 +45,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.4.0",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
@@ -50,10 +62,13 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.0",
+    "lint-staged": "^16.4.0",
     "postcss": "^8.5.12",
     "sql.js": "^1.14.1",
     "tailwindcss": "^4.0.0",
+    "typedoc": "^0.28.19",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",

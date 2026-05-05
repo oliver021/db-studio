@@ -1,24 +1,44 @@
 /// <reference types="vite/client" />
 
+// Renderer-side shape of window.dbstudio (matches electron/preload.cts).
+// Use src/services/dbClient.ts instead of accessing this global directly.
+interface DbStudio {
+  // Session management
+  openDialog: () => Promise<{ sessionId: string; name: string; path: string } | null>;
+  openSession: (config: unknown, name?: string) => Promise<{ sessionId: string }>;
+  closeSession: (sessionId: string) => Promise<{ ok: boolean }>;
+  listSessions: () => Promise<Array<{ sessionId: string; name: string; kind: string }>>;
+  testConnection: (config: unknown) => Promise<{ ok: boolean; error?: string }>;
+
+  // Schema & relations
+  getSchema: (sessionId: string) => Promise<any[]>;
+  getRelations: (sessionId: string) => Promise<any[]>;
+  capabilities: (sessionId: string) => Promise<any>;
+
+  // Table data
+  getTableRowCount: (sessionId: string, tableName: string, search?: string, filters?: any[]) => Promise<number>;
+  getTableData: (sessionId: string, tableName: string, opts: any) => Promise<any[]>;
+
+  // Query
+  executeQuery: (sessionId: string, sql: string, params?: unknown[]) => Promise<any>;
+  explainQueryPlan: (sessionId: string, sql: string) => Promise<any[]>;
+
+  // CRUD
+  updateRow: (sessionId: string, tableName: string, pkColumn: string, pkValue: unknown, changes: any) => Promise<any>;
+  insertRow: (sessionId: string, tableName: string, data: any) => Promise<any>;
+  deleteRow: (sessionId: string, tableName: string, pkColumn: string, pkValue: unknown) => Promise<any>;
+
+  // Transactions
+  beginTransaction: (sessionId: string) => Promise<void>;
+  commitTransaction: (sessionId: string) => Promise<void>;
+  rollbackTransaction: (sessionId: string) => Promise<void>;
+  getTransactionStatus: (sessionId: string) => Promise<boolean>;
+
+  // Maintenance
+  getStats: (sessionId: string) => Promise<any>;
+  runMaintenance: (sessionId: string, taskId: string) => Promise<any>;
+}
+
 interface Window {
-  sqlitenav: {
-    openDialog: () => Promise<string | null>;
-    getSchema: () => Promise<any[]>;
-    getTableRowCount: (tableName: string, search?: string, filters?: any[]) => Promise<number>;
-    getTableData: (tableName: string, limit?: number, offset?: number, sortColumn?: string, sortDirection?: string, search?: string, filters?: any[]) => Promise<any[]>;
-    executeQuery: (query: string, params?: any[]) => Promise<any>;
-    updateRow: (tableName: string, pkColumn: string, pkValue: any, changes: any) => Promise<any>;
-    insertRow: (tableName: string, data: any) => Promise<any>;
-    deleteRow: (tableName: string, pkColumn: string, pkValue: any) => Promise<any>;
-    getRelations: () => Promise<any[]>;
-    
-    // Advanced Features
-    explainQueryPlan: (query: string) => Promise<any[]>;
-    beginTransaction: () => Promise<void>;
-    commitTransaction: () => Promise<void>;
-    rollbackTransaction: () => Promise<void>;
-    getTransactionStatus: () => Promise<boolean>;
-    getDatabaseStats: () => Promise<any>;
-    runMaintenance: (task: 'vacuum' | 'optimize' | 'integrity') => Promise<any>;
-  };
+  dbstudio: DbStudio;
 }
