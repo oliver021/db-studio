@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import * as db from '../services/dbClient';
 
@@ -90,8 +91,10 @@ interface StoreState {
   activeSession: () => SessionState | null;
 
   // ── Session actions ──────────────────────────────────────────────────────
-  /** Open the native SQLite file dialog and create a session. */
+  /** Open the native SQLite file dialog and create a session. Throws on error. */
   openDialog: () => Promise<void>;
+  /** Connect using an explicit config object. Throws on error. */
+  openSession: (config: unknown, name: string) => Promise<void>;
   addSession: (info: SessionInfo) => void;
   removeSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -198,7 +201,18 @@ export const useStore = create<StoreState>((set, get) => {
     openDialog: async () => {
       const result = await db.openDialog();
       if (!result) return;
+      if (!result.ok) throw new Error(result.error ?? 'Failed to open database');
       const info: SessionInfo = { sessionId: result.sessionId, name: result.name, kind: 'sqlite' };
+      get().addSession(info);
+      get().switchSession(result.sessionId);
+      await get().refreshSchema();
+    },
+
+    openSession: async (config: unknown, name: string) => {
+      const result = await db.openSession(config, name);
+      if (!result.ok) throw new Error(result.error ?? 'Failed to connect');
+      const kind = (config as any).kind ?? 'unknown';
+      const info: SessionInfo = { sessionId: result.sessionId, name, kind };
       get().addSession(info);
       get().switchSession(result.sessionId);
       await get().refreshSchema();

@@ -26,7 +26,7 @@ export const getTableRowCount = (
   sessionId: string,
   tableName: string,
   search?: string,
-  filters?: any[],
+  filters?: unknown[],
 ) => api().getTableRowCount(sessionId, tableName, search, filters);
 
 export interface TableDataOpts {
@@ -35,7 +35,7 @@ export interface TableDataOpts {
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
   search?: string;
-  filters?: any[];
+  filters?: unknown[];
 }
 
 export const getTableData = (sessionId: string, tableName: string, opts: TableDataOpts) =>
@@ -77,3 +77,10 @@ export const getTransactionStatus = (sessionId: string) => api().getTransactionS
 export const getStats = (sessionId: string) => api().getStats(sessionId);
 export const runMaintenance = (sessionId: string, taskId: string) =>
   api().runMaintenance(sessionId, taskId);
+
+// ── Saved connections ─────────────────────────────────────────────────────────
+
+export const listSavedConnections = () => api().listSavedConnections();
+export const saveConnection = (config: unknown, name: string) => api().saveConnection(config, name);
+export const updateSavedLastConnected = (id: string) => api().updateSavedLastConnected(id);
+export const deleteSavedConnection = (id: string) => api().deleteSavedConnection(id);

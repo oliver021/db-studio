@@ -1,14 +1,21 @@
 /// <reference types="vite/client" />
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Renderer-side shape of window.dbstudio (matches electron/preload.cts).
 // Use src/services/dbClient.ts instead of accessing this global directly.
 interface DbStudio {
   // Session management
-  openDialog: () => Promise<{ sessionId: string; name: string; path: string } | null>;
-  openSession: (config: unknown, name?: string) => Promise<{ sessionId: string }>;
+  openDialog: () => Promise<{ ok: boolean; sessionId?: string; name?: string; path?: string; error?: string } | null>;
+  openSession: (config: unknown, name?: string) => Promise<{ ok: boolean; sessionId?: string; error?: string }>;
   closeSession: (sessionId: string) => Promise<{ ok: boolean }>;
   listSessions: () => Promise<Array<{ sessionId: string; name: string; kind: string }>>;
   testConnection: (config: unknown) => Promise<{ ok: boolean; error?: string }>;
+
+  // Saved connections
+  listSavedConnections: () => Promise<any[]>;
+  saveConnection: (config: unknown, name: string) => Promise<any>;
+  updateSavedLastConnected: (id: string) => Promise<void>;
+  deleteSavedConnection: (id: string) => Promise<{ ok: boolean }>;
 
   // Schema & relations
   getSchema: (sessionId: string) => Promise<any[]>;

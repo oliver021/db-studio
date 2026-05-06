@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import './App.css';
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from './store/useStore';
@@ -23,11 +24,13 @@ import QueryConsole from './components/QueryConsole/QueryConsole';
 import SchemaGraph from './components/SchemaGraph/SchemaGraph';
 import FilterModal from './components/DataTable/FilterModal';
 import MaintenanceView from './components/Maintenance/MaintenanceView';
+import ConnectionManager from './components/Connections/ConnectionManager';
 
 export default function App() {
   const {
     activeSessionId, activeSession,
     openDialog,
+    addSession, switchSession, refreshSchema,
     activeTableName, setActiveTable, activeTableData,
     currentPage, pageSize, totalRows,
     setPage, setPageSize, isLoading,
@@ -64,6 +67,7 @@ export default function App() {
     : (visibleColumnsMap[activeTableName ?? ''] ?? allColNames.slice(0, 8));
   const visibleCols = allCols.filter((c: any) => visibleNames.includes(c.name));
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setLocalSearch(searchTerm); }, [activeTableName, searchTerm]);
 
   // Guard: if activeView is 'maintenance' but engine doesn't support it, fall back to 'data'
@@ -71,10 +75,16 @@ export default function App() {
     if (activeView === 'maintenance' && capabilities && !capabilities.hasMaintenance) {
       setActiveView('data');
     }
-  }, [activeView, capabilities]);
+  }, [activeView, capabilities, setActiveView]);
 
-  const handleOpenDatabase = async () => {
+  const handleOpenDialog = async () => {
     await openDialog();
+  };
+
+  const handleConnected = (sessionId: string, name: string, kind: string) => {
+    addSession({ sessionId, name, kind });
+    switchSession(sessionId);
+    refreshSchema();
   };
 
   const handleSearchChange = (value: string) => {
@@ -126,7 +136,7 @@ export default function App() {
         connectionString={activeSessionId}
         connectionName={session?.name}
         capabilities={capabilities}
-        onOpenDatabase={handleOpenDatabase}
+        onOpenDatabase={handleOpenDialog}
         activeView={activeView}
         onViewChange={setActiveView}
         tables={tables}
@@ -282,8 +292,22 @@ export default function App() {
                   onPageSizeChange={setPageSize}
                 />
               </motion.div>
+            ) : !activeSessionId ? (
+              <motion.div
+                key="connection-manager"
+                className="empty-state"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ConnectionManager
+                  onConnected={handleConnected}
+                  onOpenDialog={handleOpenDialog}
+                />
+              </motion.div>
             ) : (
-              <EmptyState onOpenDatabase={handleOpenDatabase} />
+              <EmptyState />
             )}
           </AnimatePresence>
         </div>

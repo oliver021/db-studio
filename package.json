@@ -22,8 +22,13 @@
     "docs:gen": "typedoc"
   },
   "lint-staged": {
-    "*.{ts,tsx}": ["eslint --fix", "vitest related --run"],
-    "*.{js,json,css,md}": ["prettier --write"]
+    "*.{ts,tsx}": [
+      "npx eslint --fix",
+      "npx vitest related --run"
+    ],
+    "*.{js,json,css,md}": [
+      "npx prettier --write"
+    ]
   },
   "dependencies": {
     "@heroui/pagination": "^2.2.27",

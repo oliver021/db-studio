@@ -1,0 +1,554 @@
+/* ── Connection Manager ──────────────────────────────────────────────────── */
+
+.conn-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.conn-manager-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Error banner ────────────────────────────────────────────────────────── */
+
+.conn-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  margin-bottom: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.conn-error-icon {
+  flex-shrink: 0;
+  color: #ef4444;
+  margin-top: 1px;
+}
+
+.conn-error-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.conn-error-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444;
+  margin: 0 0 2px;
+}
+
+.conn-error-msg {
+  font-size: 12px;
+  color: rgba(239, 68, 68, 0.85);
+  margin: 0;
+  word-break: break-word;
+}
+
+.conn-error-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(239, 68, 68, 0.6);
+  padding: 2px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.conn-error-dismiss:hover {
+  color: #ef4444;
+}
+
+/* ── Connection list ─────────────────────────────────────────────────────── */
+
+.conn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* ── Connection Card ─────────────────────────────────────────────────────── */
+
+.conn-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.conn-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.conn-card.conn-card--error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.conn-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.conn-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.conn-engine-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.conn-engine-badge--sqlite {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+}
+
+.conn-engine-badge--postgres {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+}
+
+.conn-engine-badge--mysql {
+  background: rgba(249, 115, 22, 0.18);
+  color: #f97316;
+}
+
+.conn-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conn-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted, rgba(248, 250, 252, 0.45));
+}
+
+.conn-card-path {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.conn-card-dot {
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.conn-card-time {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.conn-card-error-msg {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.conn-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.conn-card-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: none;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  cursor: pointer;
+  color: var(--text-muted, rgba(248, 250, 252, 0.4));
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.conn-card-delete:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.conn-card-connect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(
+    135deg,
+    var(--accent-indigo, #6366f1),
+    var(--accent-violet, #8b5cf6)
+  );
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.conn-card-connect:hover {
+  opacity: 0.88;
+}
+
+.conn-card-connect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Bottom CTAs ─────────────────────────────────────────────────────────── */
+
+.conn-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conn-btn-new {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(
+    135deg,
+    var(--accent-indigo, #6366f1),
+    var(--accent-violet, #8b5cf6)
+  );
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: opacity 0.15s;
+}
+
+.conn-btn-new:hover {
+  opacity: 0.88;
+}
+
+.conn-btn-open-file {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  color: var(--text-muted, rgba(248, 250, 252, 0.55));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.conn-btn-open-file:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-primary, #f8fafc);
+}
+
+/* ── New Connection Form ─────────────────────────────────────────────────── */
+
+.conn-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.conn-form-modal {
+  background: var(--surface-1, #1e293b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 14px;
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  padding: 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.2s ease;
+}
+
+.conn-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.conn-form-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  margin: 0;
+}
+
+.conn-form-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, rgba(248, 250, 252, 0.45));
+  padding: 4px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.conn-form-close:hover {
+  color: var(--text-primary, #f8fafc);
+}
+
+.conn-form-engine-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.conn-form-engine-tab {
+  flex: 1;
+  padding: 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: none;
+  color: var(--text-muted, rgba(248, 250, 252, 0.5));
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.conn-form-engine-tab.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #818cf8;
+}
+
+.conn-form-field {
+  margin-bottom: 14px;
+}
+
+.conn-form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, rgba(248, 250, 252, 0.55));
+  margin-bottom: 6px;
+}
+
+.conn-form-input {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 7px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #f8fafc);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.conn-form-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.conn-form-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.conn-form-row .conn-form-field {
+  margin-bottom: 0;
+}
+
+.conn-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  gap: 8px;
+}
+
+.conn-form-row-3 .conn-form-field {
+  margin-bottom: 0;
+}
+
+.conn-form-test-row {
+  margin-bottom: 16px;
+}
+
+.conn-form-test-btn {
+  background: none;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  color: var(--text-muted, rgba(248, 250, 252, 0.6));
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conn-form-test-btn:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-primary, #f8fafc);
+}
+
+.conn-form-test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.conn-form-test-status {
+  font-size: 12px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.conn-form-test-status.ok {
+  color: #10b981;
+}
+
+.conn-form-test-status.fail {
+  color: #ef4444;
+}
+
+.conn-form-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.conn-form-cancel {
+  flex: 1;
+  padding: 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  color: var(--text-muted, rgba(248, 250, 252, 0.55));
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.conn-form-cancel:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary, #f8fafc);
+}
+
+.conn-form-submit {
+  flex: 2;
+  padding: 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+
+.conn-form-submit:hover {
+  opacity: 0.88;
+}
+
+.conn-form-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.conn-form-error {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
