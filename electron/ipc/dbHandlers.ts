@@ -1,7 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import type { ConnectionRegistry } from '../ConnectionRegistry.js';
-import type { ConnectionConfig } from '../models/index.js';
 import type { PaginationOptions, FilterRule } from '../drivers/Driver.js';
+import { ConnectionConfigSchema, DbInvokeSchema } from './schemas.js';
 
 /**
  * Register all db:* IPC handlers.
@@ -29,7 +29,8 @@ export function registerDbHandlers(
   });
 
   /** Open a session from an explicit ConnectionConfig (Postgres, MySQL, etc.). */
-  ipcMain.handle('db:open', async (_evt, config: ConnectionConfig, name?: string) => {
+  ipcMain.handle('db:open', async (_evt, rawConfig: unknown, name?: string) => {
+    const config = ConnectionConfigSchema.parse(rawConfig);
     const sessionId = await registry.open(config, name);
     return { sessionId };
   });
@@ -41,14 +42,15 @@ export function registerDbHandlers(
 
   ipcMain.handle('db:list', () => registry.list());
 
-  ipcMain.handle('db:test', async (_evt, config: ConnectionConfig) => {
+  ipcMain.handle('db:test', async (_evt, rawConfig: unknown) => {
+    const config = ConnectionConfigSchema.parse(rawConfig);
     return registry.test(config);
   });
 
   // ── Generic driver-op dispatcher ───────────────────────────────────────
 
-  ipcMain.handle('db:invoke', async (_evt, payload: { sessionId: string; op: string; args: unknown[] }) => {
-    const { sessionId, op, args } = payload;
+  ipcMain.handle('db:invoke', async (_evt, rawPayload: unknown) => {
+    const { sessionId, op, args } = DbInvokeSchema.parse(rawPayload);
     const driver = registry.driver(sessionId);
 
     switch (op) {

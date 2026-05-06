@@ -37,6 +37,19 @@ interface DbStudio {
   // Maintenance
   getStats: (sessionId: string) => Promise<any>;
   runMaintenance: (sessionId: string, taskId: string) => Promise<any>;
+
+  // Settings
+  getSettings: () => Promise<any>;
+  setSettings: (patch: unknown) => Promise<any>;
+  resetSettings: () => Promise<any>;
+
+  // Saved connections
+  listConnections: () => Promise<any[]>;
+  getConnection: (id: string) => Promise<any | null>;
+  saveConnection: (name: string, config: unknown, password?: string) => Promise<any>;
+  updateConnection: (id: string, name: string, config: unknown, password?: string) => Promise<any>;
+  deleteConnection: (id: string) => Promise<{ ok: boolean }>;
+  connectSaved: (id: string) => Promise<{ sessionId: string; name?: string }>;
 }
 
 interface Window {

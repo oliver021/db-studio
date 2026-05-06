@@ -1,16 +1,21 @@
 import './App.css';
+import './components/Layout/TabBar.css';
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from './store/useStore';
+import type { ConnectionsTab, SettingsTab as SettingsTabType } from './store/useStore';
 import { Search, Columns3, Zap, Filter } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Hooks & Utils
 import { useToast } from './hooks/useToast';
+import { useTabPersistence } from './hooks/useTabPersistence';
+import { useTabKeyboard } from './hooks/useTabKeyboard';
 import { getPrimaryKey } from './utils/db';
 import * as dbClient from './services/dbClient';
 
 // Components
 import Sidebar from './components/Layout/Sidebar';
+import TabBar from './components/Layout/TabBar';
 import Breadcrumbs from './components/Layout/Breadcrumbs';
 import DataTable from './components/DataTable/DataTable';
 import Pagination from './components/DataTable/Pagination';
@@ -23,6 +28,9 @@ import QueryConsole from './components/QueryConsole/QueryConsole';
 import SchemaGraph from './components/SchemaGraph/SchemaGraph';
 import FilterModal from './components/DataTable/FilterModal';
 import MaintenanceView from './components/Maintenance/MaintenanceView';
+import ConnectionManager from './components/Connections/ConnectionManager';
+import SettingsTab from './components/Settings/SettingsTab';
+import { useSettingsStore } from './store/useSettingsStore';
 
 export default function App() {
   const {
@@ -36,6 +44,7 @@ export default function App() {
     filters, setFilters,
     visibleColumnsMap, setVisibleColumns, showAllColumns, setShowAllColumns,
     activeView, setActiveView,
+    tabs, activeTabId, openTab, closeTab, switchTab, reorderTabs,
   } = useStore();
 
   const session = activeSession();
@@ -43,6 +52,18 @@ export default function App() {
   const capabilities = session?.capabilities ?? null;
 
   const { toasts, push: toast } = useToast();
+
+  // Tab persistence + keyboard shortcuts
+  useTabPersistence();
+  useTabKeyboard();
+
+  // Hydrate settings on first render
+  const { hydrate: hydrateSettings } = useSettingsStore();
+  useEffect(() => { hydrateSettings(); }, [hydrateSettings]);
+
+  // Derive which tab kind is currently active
+  const activeTab = tabs.find(t => t.id === activeTabId) ?? null;
+  const isSessionView = !activeTab || activeTab.kind === 'session';
 
   const [colPickerOpen, setColPickerOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -75,6 +96,23 @@ export default function App() {
 
   const handleOpenDatabase = async () => {
     await openDialog();
+  };
+
+  const handleOpenConnections = () => {
+    const tab: ConnectionsTab = { kind: 'connections', id: 'connections', title: 'Connections', pinned: false, dirty: false };
+    openTab(tab);
+  };
+
+  const handleOpenSettings = () => {
+    const tab: SettingsTabType = { kind: 'settings', id: 'settings', title: 'Settings', pinned: false, dirty: false };
+    openTab(tab);
+  };
+
+  const handleConnectionManagerConnect = async (sessionId: string, name: string) => {
+    const { addSession, switchSession, refreshSchema } = useStore.getState();
+    addSession({ sessionId, name, kind: 'unknown' });
+    switchSession(sessionId);
+    await refreshSchema();
   };
 
   const handleSearchChange = (value: string) => {
@@ -127,26 +165,51 @@ export default function App() {
         connectionName={session?.name}
         capabilities={capabilities}
         onOpenDatabase={handleOpenDatabase}
+        onManageConnections={handleOpenConnections}
+        onOpenSettings={handleOpenSettings}
         activeView={activeView}
         onViewChange={setActiveView}
-        tables={tables}
-        views={views}
+        tables={isSessionView ? tables : []}
+        views={isSessionView ? views : []}
         activeTableName={activeTableName}
         onTableSelect={setActiveTable}
       />
 
       <main className="main-content">
-        <header className="toolbar">
-          <Breadcrumbs
-            connectionString={activeSessionId}
-            activeView={activeView}
-            activeTableName={activeTableName}
-          />
-        </header>
+        <TabBar
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onSwitch={switchTab}
+          onClose={closeTab}
+          onReorder={reorderTabs}
+          onNewTab={handleOpenConnections}
+        />
+
+        {isSessionView && (
+          <header className="toolbar">
+            <Breadcrumbs
+              connectionString={activeSessionId}
+              activeView={activeView}
+              activeTableName={activeTableName}
+            />
+          </header>
+        )}
 
         <div className="content-area">
+          {/* ── Non-session tabs ── */}
+          {activeTab?.kind === 'connections' && (
+            <ConnectionManager
+              inline
+              onConnected={handleConnectionManagerConnect}
+            />
+          )}
+          {activeTab?.kind === 'settings' && (
+            <SettingsTab />
+          )}
+
+          {/* ── Session tab content ── */}
           <AnimatePresence mode="wait">
-            {activeView === 'query' ? (
+            {isSessionView && activeView === 'query' ? (
               <motion.div
                 key="query-console"
                 className="table-view"
@@ -157,7 +220,7 @@ export default function App() {
               >
                 <QueryConsole />
               </motion.div>
-            ) : activeView === 'schema-graph' ? (
+            ) : isSessionView && activeView === 'schema-graph' ? (
               <motion.div
                 key="schema-graph"
                 className="table-view"
@@ -168,7 +231,7 @@ export default function App() {
               >
                 <SchemaGraph />
               </motion.div>
-            ) : activeView === 'maintenance' && capabilities?.hasMaintenance ? (
+            ) : isSessionView && activeView === 'maintenance' && capabilities?.hasMaintenance ? (
               <motion.div
                 key="maintenance"
                 className="table-view"
@@ -179,7 +242,7 @@ export default function App() {
               >
                 <MaintenanceView />
               </motion.div>
-            ) : activeTableName ? (
+            ) : isSessionView && activeTableName ? (
               <motion.div
                 key={activeTableName}
                 className="table-view"
@@ -282,9 +345,9 @@ export default function App() {
                   onPageSizeChange={setPageSize}
                 />
               </motion.div>
-            ) : (
+            ) : isSessionView ? (
               <EmptyState onOpenDatabase={handleOpenDatabase} />
-            )}
+            ) : null}
           </AnimatePresence>
         </div>
 

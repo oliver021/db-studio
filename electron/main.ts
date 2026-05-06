@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ConnectionRegistry } from './ConnectionRegistry.js';
 import { registerDbHandlers } from './ipc/dbHandlers.js';
+import { registerConnectionHandlers } from './ipc/connectionHandlers.js';
+import { registerSettingsHandlers } from './ipc/settingsHandlers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +38,8 @@ function createWindow() {
 
 app.whenReady().then(() => {
   registerDbHandlers(registry, () => mainWindow);
+  registerConnectionHandlers(registry);
+  registerSettingsHandlers();
   createWindow();
 
   app.on('activate', () => {

@@ -77,3 +77,14 @@ export const getTransactionStatus = (sessionId: string) => api().getTransactionS
 export const getStats = (sessionId: string) => api().getStats(sessionId);
 export const runMaintenance = (sessionId: string, taskId: string) =>
   api().runMaintenance(sessionId, taskId);
+
+// ── Saved connections ─────────────────────────────────────────────────────────
+
+export const listConnections = () => api().listConnections();
+export const getConnection = (id: string) => api().getConnection(id);
+export const saveConnection = (name: string, config: unknown, password?: string) =>
+  api().saveConnection(name, config, password);
+export const updateConnection = (id: string, name: string, config: unknown, password?: string) =>
+  api().updateConnection(id, name, config, password);
+export const deleteConnection = (id: string) => api().deleteConnection(id);
+export const connectSaved = (id: string) => api().connectSaved(id);

@@ -2,25 +2,29 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import type { OnMount } from '@monaco-editor/react';
 import { useStore } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Play, Trash2, History, Clock, Table2, CheckCircle } from 'lucide-react';
 
 import { THEMES, SQLITENAV_THEME, MIDNIGHT_THEME } from '../../config/editorThemes';
 import { useQueryExecution } from '../../hooks/useQueryExecution';
 import { createSqlCompletionProvider } from '../../utils/sqlAutocompletion';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import * as dbClient from '../../services/dbClient';
 
 import QueryResults from './QueryResults';
 import QueryHistory from './QueryHistory';
+import QueryPlanRenderer from './QueryPlanRenderer';
 import './QueryConsole.css';
 
 export default function QueryConsole() {
-  const { activeSessionId, activeSession } = useStore(s => ({
+  const { activeSessionId, activeSession } = useStore(useShallow(s => ({
     activeSessionId: s.activeSessionId,
     activeSession: s.activeSession,
-  }));
+  })));
   const session = activeSession();
   const schema = session?.schema ?? [];
   const capabilities = session?.capabilities ?? null;
+  const dialect = capabilities?.dialect ?? 'sqlite';
 
   const {
     results, writeInfo, error, isRunning, execTime, history,
@@ -31,10 +35,14 @@ export default function QueryConsole() {
   const [queryPlan, setQueryPlan] = useState<any[] | null>(null);
   const [isAutoCommit, setIsAutoCommit] = useState(true);
 
-  const [sql, setSql] = useState('SELECT * FROM ');
-  const [theme, setTheme] = useState('sqlitenav-dark');
+  const editorSettings = useSettingsStore(s => s.settings.editor);
+  const globalTheme    = useSettingsStore(s => s.settings.appearance.editorTheme);
+
+  const [sql, setSql] = useState(editorSettings.defaultSql);
+  const [theme, setTheme] = useState<string>(globalTheme);
   const [tab, setTab] = useState<'results' | 'history'>('results');
   const [splitRatio, setSplitRatio] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
 
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
@@ -107,10 +115,28 @@ export default function QueryConsole() {
 
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       'sql',
-      createSqlCompletionProvider(schema as any),
+      createSqlCompletionProvider(schema as any, dialect),
     );
     return () => completionProvider.dispose();
   };
+
+  // Sync editor options when settings change
+  useEffect(() => {
+    editorRef.current?.updateOptions({
+      fontSize:    editorSettings.fontSize,
+      fontFamily:  editorSettings.fontFamily,
+      tabSize:     editorSettings.tabSize,
+      wordWrap:    editorSettings.wordWrap ? 'on' : 'off',
+      lineNumbers: editorSettings.lineNumbers ? 'on' : 'off',
+      minimap:     { enabled: editorSettings.minimap },
+    });
+  }, [editorSettings]);
+
+  // Sync global theme change into this console
+  useEffect(() => {
+    setTheme(globalTheme);
+    monacoRef.current?.editor.setTheme(globalTheme);
+  }, [globalTheme]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -119,7 +145,10 @@ export default function QueryConsole() {
       const ratio = ((e.clientY - rect.top) / rect.height) * 100;
       setSplitRatio(Math.max(20, Math.min(80, ratio)));
     };
-    const onUp = () => { dragging.current = false; };
+    const onUp = () => {
+      dragging.current = false;
+      setIsDragging(false);
+    };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => {
@@ -196,17 +225,18 @@ export default function QueryConsole() {
             onChange={v => setSql(v ?? '')}
             onMount={handleEditorMount}
             options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              minimap:     { enabled: editorSettings.minimap },
+              fontSize:    editorSettings.fontSize,
+              fontFamily:  editorSettings.fontFamily,
+              tabSize:     editorSettings.tabSize,
+              wordWrap:    editorSettings.wordWrap ? 'on' : 'off',
+              lineNumbers: editorSettings.lineNumbers ? 'on' : 'off',
               lineHeight: 22,
               padding: { top: 12, bottom: 12 },
               scrollBeyondLastLine: false,
-              wordWrap: 'on',
               renderLineHighlight: 'line',
               suggestOnTriggerCharacters: true,
               quickSuggestions: true,
-              tabSize: 2,
               automaticLayout: true,
               scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
             }}
@@ -215,8 +245,11 @@ export default function QueryConsole() {
       </div>
 
       <div
-        className={`qc-divider${dragging.current ? ' dragging' : ''}`}
-        onMouseDown={() => { dragging.current = true; }}
+        className={`qc-divider${isDragging ? ' dragging' : ''}`}
+        onMouseDown={() => {
+          dragging.current = true;
+          setIsDragging(true);
+        }}
       />
 
       <div className="qc-results-section" style={{ height: `${100 - splitRatio}%` }}>
@@ -263,25 +296,7 @@ export default function QueryConsole() {
               }}
             />
           ) : queryPlan ? (
-            <div className="qc-query-plan">
-              <table className="qc-results-table">
-                <thead>
-                  <tr>
-                    <th>ID</th><th>Parent</th><th>Not Used</th><th>Detail</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {queryPlan.map((p, i) => (
-                    <tr key={i}>
-                      <td>{p.id}</td>
-                      <td>{p.parent}</td>
-                      <td>{p.notused}</td>
-                      <td style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{p.detail}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <QueryPlanRenderer plan={queryPlan} dialect={dialect} />
           ) : (
             <QueryResults results={results} writeInfo={writeInfo} error={error} />
           )}

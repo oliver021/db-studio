@@ -18,5 +18,10 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // v7 rule — too strict for valid "sync external state into React" patterns
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

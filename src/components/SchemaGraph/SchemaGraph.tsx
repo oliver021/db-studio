@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mermaid from 'mermaid';
 import { useStore } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import * as dbClient from '../../services/dbClient';
 import {
   ZoomIn, ZoomOut, Maximize2, Download, Copy, X,
@@ -187,7 +188,10 @@ function generateDDL(tables: TableDef[], relations: Relation[]): string {
 let renderCounter = 0;
 
 export default function SchemaGraph() {
-  const { schema, activeSessionId } = useStore(s => ({ schema: s.schema, activeSessionId: s.activeSessionId }));
+  const { schema, activeSessionId } = useStore(useShallow(s => ({
+    schema: s.schema,
+    activeSessionId: s.activeSessionId,
+  })));
 
   const [relations, setRelations] = useState<Relation[]>([]);
   const [svg, setSvg] = useState('');
@@ -221,8 +225,12 @@ export default function SchemaGraph() {
 
   /* ----- Generate & render diagram ----- */
   useEffect(() => {
-    if (tables.length === 0) { setSvg(''); return; }
+    if (tables.length === 0) {
+      setSvg('');
+      return;
+    }
 
+    let active = true;
     setIsLoading(true);
     const code = generateMermaidER(tables, relations);
 
@@ -232,15 +240,20 @@ export default function SchemaGraph() {
     mermaid.initialize(MERMAID_CONFIG);
     mermaid.render(graphId, code)
       .then(({ svg: renderedSvg }) => {
-        setSvg(renderedSvg);
-        setIsLoading(false);
+        if (active) {
+          setSvg(renderedSvg);
+          setIsLoading(false);
+        }
       })
       .catch((err) => {
-        console.error('Mermaid render error:', err);
-        setSvg('');
-        setIsLoading(false);
+        if (active) {
+          console.error('Mermaid render error:', err);
+          setSvg('');
+          setIsLoading(false);
+        }
       });
-  }, [tables.length, relations]);
+    return () => { active = false; };
+  }, [tables, relations, setSvg, setIsLoading]);
 
   /* ----- Zoom ----- */
   const handleZoom = useCallback((delta: number) => {

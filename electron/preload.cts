@@ -48,4 +48,19 @@ contextBridge.exposeInMainWorld('dbstudio', {
   // ── Maintenance ───────────────────────────────────────────────────────
   getStats: (sessionId: string) => invoke(sessionId, 'getStats'),
   runMaintenance: (sessionId: string, taskId: string) => invoke(sessionId, 'runMaintenance', taskId),
+
+  // ── Settings ──────────────────────────────────────────────────────────
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  setSettings: (patch: unknown) => ipcRenderer.invoke('settings:set', patch),
+  resetSettings: () => ipcRenderer.invoke('settings:reset'),
+
+  // ── Saved connections ─────────────────────────────────────────────────
+  listConnections: () => ipcRenderer.invoke('connections:list'),
+  getConnection: (id: string) => ipcRenderer.invoke('connections:get', id),
+  saveConnection: (name: string, config: unknown, password?: string) =>
+    ipcRenderer.invoke('connections:save', { name, config, password }),
+  updateConnection: (id: string, name: string, config: unknown, password?: string) =>
+    ipcRenderer.invoke('connections:update', { id, name, config, password }),
+  deleteConnection: (id: string) => ipcRenderer.invoke('connections:delete', id),
+  connectSaved: (id: string) => ipcRenderer.invoke('connections:connect', id),
 });

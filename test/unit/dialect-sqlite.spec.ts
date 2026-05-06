@@ -52,7 +52,7 @@ describe('dialect/sqlite', () => {
     });
 
     it('handles contains filter', () => {
-      const { clause, params } = buildWhereClause(
+      const { params } = buildWhereClause(
         ['name'],
         undefined,
         [{ column: 'name', operator: 'contains', value: 'ali' }],

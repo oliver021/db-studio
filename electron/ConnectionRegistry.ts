@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { randomUUID } from 'crypto';
 import type { Driver } from './drivers/Driver.js';
 import type { ConnectionConfig } from './models/index.js';
-import { SqliteDriver } from './drivers/SqliteDriver.js';
+import { SqliteDriver }   from './drivers/SqliteDriver.js';
+import { PostgresDriver } from './drivers/PostgresDriver.js';
+import { MysqlDriver }    from './drivers/MysqlDriver.js';
 
 export interface SessionEntry {
   sessionId: string;
@@ -77,10 +80,9 @@ export class ConnectionRegistry {
 
   private createDriver(config: ConnectionConfig): Driver {
     switch (config.kind) {
-      case 'sqlite': return new SqliteDriver();
-      // Future drivers registered here:
-      // case 'postgres': return new PostgresDriver();
-      // case 'mysql':    return new MysqlDriver();
+      case 'sqlite':   return new SqliteDriver();
+      case 'postgres': return new PostgresDriver();
+      case 'mysql':    return new MysqlDriver();
       default:
         throw new Error(`Unsupported database kind: ${(config as any).kind}`);
     }

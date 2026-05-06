@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Database from 'better-sqlite3';
 import type { Driver, PaginationOptions, FilterRule } from './Driver.js';
 import type {
@@ -141,11 +142,12 @@ export class SqliteDriver implements Driver {
 
   async executeQuery(sql: string, params: unknown[] = []): Promise<QueryResult> {
     const db = this.requireDb();
-    const trimmed = sql.trim().toUpperCase();
-    const isRead = trimmed.startsWith('SELECT') || trimmed.startsWith('PRAGMA') || trimmed.startsWith('WITH') || trimmed.startsWith('EXPLAIN');
     try {
       const stmt = db.prepare(sql);
-      if (isRead) {
+      // stmt.reader is set by better-sqlite3 / SQLite itself: true when the
+      // statement returns rows (SELECT, PRAGMA that returns data, EXPLAIN, CTEs).
+      // This is more accurate than any string-based or AST-based classification.
+      if (stmt.reader) {
         return { success: true, data: stmt.all(...params) as Record<string, unknown>[] };
       } else {
         const info = stmt.run(...params);

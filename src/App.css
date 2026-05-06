@@ -118,6 +118,30 @@
   transform: translateY(0);
 }
 
+/* Outline button (secondary actions e.g. sidebar quick-open) */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color var(--transition-normal), border-color var(--transition-normal), background var(--transition-normal);
+}
+.btn-outline:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+  background: rgba(124, 58, 237, 0.06);
+}
+.btn-outline:active {
+  background: rgba(124, 58, 237, 0.12);
+}
+
 /* Sidebar Navigation */
 .sidebar-nav {
   flex: 1;
@@ -206,6 +230,29 @@
 .sidebar-footer {
   padding: 12px 16px;
   border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+.sidebar-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.sidebar-settings-btn:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
 }
 .connection-indicator {
   display: flex;
@@ -301,6 +348,30 @@
   padding: 20px 24px;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Settings root fills the content-area edge-to-edge (overrides padding) */
+.content-area:has(.settings-root) {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Placeholder for tabs without real content yet (e.g. Settings) */
+.tab-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.tab-placeholder h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 /* ==========================================================================

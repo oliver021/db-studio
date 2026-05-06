@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   ShieldCheck, Zap, HardDrive, FileText, CheckCircle, AlertTriangle,
 } from 'lucide-react';
-import { useStore } from '../../store/useStore';
+import { useStore, type MaintenanceTask } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import * as dbClient from '../../services/dbClient';
 import './MaintenanceView.css';
 
@@ -30,10 +31,10 @@ function formatStatValue(value: string | number, format?: string): string {
 }
 
 export default function MaintenanceView() {
-  const { activeSessionId, activeSession } = useStore(s => ({
+  const { activeSessionId, activeSession } = useStore(useShallow(s => ({
     activeSessionId: s.activeSessionId,
     activeSession: s.activeSession,
-  }));
+  })));
 
   const session = activeSession();
   const capabilities = session?.capabilities ?? null;
@@ -42,6 +43,20 @@ export default function MaintenanceView() {
   const [stats, setStats] = useState<any | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (!activeSessionId) return;
+    let active = true;
+    (async () => {
+      try {
+        const s = await dbClient.getStats(activeSessionId);
+        if (active) setStats(s);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+    return () => { active = false; };
+  }, [activeSessionId]);
 
   const loadStats = async () => {
     if (!activeSessionId) return;
@@ -52,8 +67,6 @@ export default function MaintenanceView() {
       console.error(err);
     }
   };
-
-  useEffect(() => { loadStats(); }, [activeSessionId]);
 
   // If engine has no maintenance support, silently redirect (App.tsx guards this view).
   if (!capabilities?.hasMaintenance) return null;
@@ -117,7 +130,7 @@ export default function MaintenanceView() {
       <div className="maintenance-sections">
         <div className="maintenance-section">
           <div className="section-content">
-            {tasks.map(task => (
+            {tasks.map((task: MaintenanceTask) => (
               <div key={task.id} className="task-item">
                 <div className="task-info">
                   <h4>{task.name}</h4>

@@ -1,4 +1,4 @@
-import { Database, FolderOpen, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck } from 'lucide-react';
+import { Database, FolderOpen, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck, ServerCog, Settings2 } from 'lucide-react';
 import type { Capabilities, ActiveView } from '../../store/useStore';
 
 interface SidebarProps {
@@ -7,6 +7,8 @@ interface SidebarProps {
   connectionName?: string;
   capabilities: Capabilities | null;
   onOpenDatabase: () => void;
+  onManageConnections: () => void;
+  onOpenSettings?: () => void;
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
   tables: any[];
@@ -20,6 +22,8 @@ export default function Sidebar({
   connectionName,
   capabilities,
   onOpenDatabase,
+  onManageConnections,
+  onOpenSettings,
   activeView,
   onViewChange,
   tables,
@@ -40,9 +44,12 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar-actions">
-        <button className="btn-gradient" onClick={onOpenDatabase}>
-          <FolderOpen size={15} />
-          {connectionString ? 'Open Another DB' : 'Open Database'}
+        <button className="btn-gradient" onClick={onManageConnections}>
+          <ServerCog size={15} />
+          Connections
+        </button>
+        <button className="btn-outline" onClick={onOpenDatabase} title="Open a SQLite file directly">
+          <FolderOpen size={14} />
         </button>
       </div>
 
@@ -126,16 +133,21 @@ export default function Sidebar({
         )}
       </nav>
 
-      {connectionString && (
-        <div className="sidebar-footer">
+      <div className="sidebar-footer">
+        {connectionString && (
           <div className="connection-indicator">
             <span className="status-dot connected" />
             <span className="connection-path" title={connectionString}>
               {connectionName ?? connectionString}
             </span>
           </div>
-        </div>
-      )}
+        )}
+        {onOpenSettings && (
+          <button className="sidebar-settings-btn" onClick={onOpenSettings} title="Settings">
+            <Settings2 size={15} />
+          </button>
+        )}
+      </div>
     </aside>
   );
 }

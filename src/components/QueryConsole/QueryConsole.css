@@ -331,3 +331,38 @@
   color: var(--accent-cyan);
 }
 .qc-divider-v { width: 1px; height: 16px; background: var(--border-subtle); margin: 0 8px; } .qc-secondary-btn { background: rgba(255, 255, 255, 0.04); color: var(--text-secondary); border: 1px solid var(--border-medium); padding: 5px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s; } .qc-secondary-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); } .qc-transaction-toggle { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); cursor: pointer; } .qc-transaction-toggle input { cursor: pointer; } .qc-transaction-actions { display: flex; gap: 8px; margin-left: 12px; padding: 4px 8px; background: rgba(124, 58, 237, 0.05); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 6px; animation: fade-in 0.3s ease; } .qc-commit-btn { background: #059669; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; } .qc-rollback-btn { background: #dc2626; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; } .qc-query-plan { height: 100%; overflow: auto; padding: 12px; background: rgba(0,0,0,0.2); } 
+
+
+/* ── Per-dialect query plan renderer ─────────────────────────────────────── */
+.qp-raw {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Postgres tree */
+.qp-pg-tree { font-family: var(--font-mono); font-size: 12px; }
+.qp-timing {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.qp-node { padding: 3px 0; }
+.qp-node-header { display: flex; align-items: baseline; gap: 8px; }
+.qp-node-type {
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-size: 12px;
+}
+.qp-node-cost {
+  color: var(--text-muted);
+  font-size: 11px;
+}
