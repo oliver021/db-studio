@@ -1,7 +1,11 @@
 import { motion } from 'framer-motion';
-import { Table2 } from 'lucide-react';
+import { Database, FolderOpen } from 'lucide-react';
 
-export default function EmptyState() {
+interface EmptyStateProps {
+  onOpenDatabase: () => void;
+}
+
+export default function EmptyState({ onOpenDatabase }: EmptyStateProps) {
   return (
     <motion.div
       key="empty"
@@ -11,12 +15,20 @@ export default function EmptyState() {
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.25 }}
     >
-      <div className="empty-icon-wrapper"><Table2 size={32} /></div>
-      <h2 className="empty-title">Select a table</h2>
+      <div className="empty-icon-wrapper"><Database size={36} /></div>
+      <h2 className="empty-title">DB Studio</h2>
       <p className="empty-description">
-        Pick a table or view from the sidebar to browse data,
-        or open the Query Console to run custom SQL.
+        Connect to a database to explore tables, run queries,
+        and inspect schemas across multiple engines.
       </p>
+      <div className="empty-cta">
+        <button className="btn-gradient" onClick={onOpenDatabase}>
+          <FolderOpen size={15} /> Open SQLite File
+        </button>
+        <span className="shortcut-hint">
+          or press <kbd className="kbd">Ctrl</kbd><span>+</span><kbd className="kbd">O</kbd>
+        </span>
+      </div>
     </motion.div>
   );
 }
