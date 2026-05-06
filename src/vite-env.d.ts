@@ -11,12 +11,6 @@ interface DbStudio {
   listSessions: () => Promise<Array<{ sessionId: string; name: string; kind: string }>>;
   testConnection: (config: unknown) => Promise<{ ok: boolean; error?: string }>;
 
-  // Saved connections
-  listSavedConnections: () => Promise<any[]>;
-  saveConnection: (config: unknown, name: string) => Promise<any>;
-  updateSavedLastConnected: (id: string) => Promise<void>;
-  deleteSavedConnection: (id: string) => Promise<{ ok: boolean }>;
-
   // Schema & relations
   getSchema: (sessionId: string) => Promise<any[]>;
   getRelations: (sessionId: string) => Promise<any[]>;

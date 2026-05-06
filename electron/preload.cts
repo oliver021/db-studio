@@ -14,12 +14,6 @@ contextBridge.exposeInMainWorld('dbstudio', {
   listSessions: () => ipcRenderer.invoke('db:list'),
   testConnection: (config: unknown) => ipcRenderer.invoke('db:test', config),
 
-  // ── Saved connections ─────────────────────────────────────────────────
-  listSavedConnections: () => ipcRenderer.invoke('db:listSavedConnections'),
-  saveConnection: (config: unknown, name: string) => ipcRenderer.invoke('db:saveConnection', config, name),
-  updateSavedLastConnected: (id: string) => ipcRenderer.invoke('db:updateSavedLastConnected', id),
-  deleteSavedConnection: (id: string) => ipcRenderer.invoke('db:deleteSavedConnection', id),
-
   // ── Schema & relations ────────────────────────────────────────────────
   getSchema: (sessionId: string) => invoke(sessionId, 'getSchema'),
   getRelations: (sessionId: string) => invoke(sessionId, 'getRelations'),
