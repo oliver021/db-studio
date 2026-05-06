@@ -50,7 +50,7 @@ interface DbStudio {
   saveConnection: (name: string, config: unknown, password?: string) => Promise<any>;
   updateConnection: (id: string, name: string, config: unknown, password?: string) => Promise<any>;
   deleteConnection: (id: string) => Promise<{ ok: boolean }>;
-  connectSaved: (id: string) => Promise<{ sessionId: string; name?: string }>;
+  connectSaved: (id: string) => Promise<{ ok: boolean; sessionId?: string; name?: string; error?: string }>;
 }
 
 interface Window {

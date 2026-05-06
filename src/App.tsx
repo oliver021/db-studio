@@ -21,6 +21,7 @@ import Breadcrumbs from './components/Layout/Breadcrumbs';
 import DataTable from './components/DataTable/DataTable';
 import Pagination from './components/DataTable/Pagination';
 import EmptyState from './components/UI/EmptyState';
+import ConnectedHome from './components/UI/ConnectedHome';
 import StatusBar from './components/Layout/StatusBar';
 import ConfirmDialog from './components/UI/ConfirmDialog';
 import ColumnPicker from './components/DataTable/ColumnPicker';
@@ -166,7 +167,6 @@ export default function App() {
         connectionString={activeSessionId}
         connectionName={session?.name}
         capabilities={capabilities}
-        onOpenDatabase={handleOpenDatabase}
         onManageConnections={handleOpenConnections}
         onOpenSettings={handleOpenSettings}
         activeView={activeView}
@@ -347,6 +347,14 @@ export default function App() {
                   onPageSizeChange={setPageSize}
                 />
               </motion.div>
+            ) : isSessionView && activeSessionId ? (
+              <ConnectedHome
+                sessionName={session?.name ?? activeSessionId}
+                dbKind={session?.kind ?? 'db'}
+                tableCount={tables.length}
+                viewCount={views.length}
+                onViewChange={setActiveView}
+              />
             ) : isSessionView ? (
               <EmptyState onOpenDatabase={handleOpenDatabase} />
             ) : null}

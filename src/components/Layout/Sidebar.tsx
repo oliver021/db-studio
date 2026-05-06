@@ -1,4 +1,4 @@
-import { Database, FolderOpen, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck, ServerCog, Settings2 } from 'lucide-react';
+import { Database, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck, ServerCog, Settings2 } from 'lucide-react';
 import type { Capabilities, ActiveView } from '../../store/useStore';
 
 interface SidebarProps {
@@ -6,7 +6,6 @@ interface SidebarProps {
   connectionString: string | null;
   connectionName?: string;
   capabilities: Capabilities | null;
-  onOpenDatabase: () => void;
   onManageConnections: () => void;
   onOpenSettings?: () => void;
   activeView: ActiveView;
@@ -21,7 +20,6 @@ export default function Sidebar({
   connectionString,
   connectionName,
   capabilities,
-  onOpenDatabase,
   onManageConnections,
   onOpenSettings,
   activeView,
@@ -47,9 +45,6 @@ export default function Sidebar({
         <button className="btn-gradient" onClick={onManageConnections}>
           <ServerCog size={15} />
           Connections
-        </button>
-        <button className="btn-outline" onClick={onOpenDatabase} title="Open a SQLite file directly">
-          <FolderOpen size={14} />
         </button>
       </div>
 

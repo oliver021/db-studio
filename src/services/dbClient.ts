@@ -87,4 +87,8 @@ export const saveConnection = (name: string, config: unknown, password?: string)
 export const updateConnection = (id: string, name: string, config: unknown, password?: string) =>
   api().updateConnection(id, name, config, password);
 export const deleteConnection = (id: string) => api().deleteConnection(id);
-export const connectSaved = (id: string) => api().connectSaved(id);
+export const connectSaved = async (id: string) => {
+  const result = await api().connectSaved(id);
+  if (!result.ok) throw new Error(result.error ?? 'Failed to connect');
+  return result as { ok: true; sessionId: string; name?: string };
+};
