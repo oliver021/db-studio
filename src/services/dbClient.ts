@@ -26,7 +26,7 @@ export const getTableRowCount = (
   sessionId: string,
   tableName: string,
   search?: string,
-  filters?: any[],
+  filters?: unknown[],
 ) => api().getTableRowCount(sessionId, tableName, search, filters);
 
 export interface TableDataOpts {
@@ -35,7 +35,7 @@ export interface TableDataOpts {
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
   search?: string;
-  filters?: any[];
+  filters?: unknown[];
 }
 
 export const getTableData = (sessionId: string, tableName: string, opts: TableDataOpts) =>
@@ -80,11 +80,7 @@ export const runMaintenance = (sessionId: string, taskId: string) =>
 
 // ── Saved connections ─────────────────────────────────────────────────────────
 
-export const listConnections = () => api().listConnections();
-export const getConnection = (id: string) => api().getConnection(id);
-export const saveConnection = (name: string, config: unknown, password?: string) =>
-  api().saveConnection(name, config, password);
-export const updateConnection = (id: string, name: string, config: unknown, password?: string) =>
-  api().updateConnection(id, name, config, password);
-export const deleteConnection = (id: string) => api().deleteConnection(id);
-export const connectSaved = (id: string) => api().connectSaved(id);
+export const listSavedConnections = () => api().listSavedConnections();
+export const saveConnection = (config: unknown, name: string) => api().saveConnection(config, name);
+export const updateSavedLastConnected = (id: string) => api().updateSavedLastConnected(id);
+export const deleteSavedConnection = (id: string) => api().deleteSavedConnection(id);
