@@ -36,6 +36,9 @@ interface DbStudio {
   rollbackTransaction: (sessionId: string) => Promise<void>;
   getTransactionStatus: (sessionId: string) => Promise<boolean>;
 
+  // DDL (Data Definition Language)
+  createTable: (sessionId: string, sql: string) => Promise<{ ok: boolean; result?: any; error?: string }>;
+
   // Maintenance
   getStats: (sessionId: string) => Promise<any>;
   runMaintenance: (sessionId: string, taskId: string) => Promise<any>;

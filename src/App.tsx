@@ -4,7 +4,7 @@ import './components/Layout/TabBar.css';
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from './store/useStore';
 import type { ConnectionsTab, SettingsTab as SettingsTabType } from './store/useStore';
-import { Search, Columns3, Zap, Filter } from 'lucide-react';
+import { Search, Columns3, Zap, Filter, Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Hooks & Utils
@@ -29,9 +29,12 @@ import ToastContainer from './components/UI/ToastContainer';
 import QueryConsole from './components/QueryConsole/QueryConsole';
 import SchemaGraph from './components/SchemaGraph/SchemaGraph';
 import FilterModal from './components/DataTable/FilterModal';
+import AddRowModal from './components/DataTable/AddRowModal';
 import MaintenanceView from './components/Maintenance/MaintenanceView';
 import ConnectionManager from './components/Connections/ConnectionManager';
 import SettingsTab from './components/Settings/SettingsTab';
+import HomeTab from './components/Home/HomeTab';
+import TableDesignModal from './components/TableDesign/TableDesignModal';
 import { useSettingsStore } from './store/useSettingsStore';
 
 export default function App() {
@@ -70,6 +73,8 @@ export default function App() {
 
   const [colPickerOpen, setColPickerOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [addRowModalOpen, setAddRowModalOpen] = useState(false);
+  const [tableDesignOpen, setTableDesignOpen] = useState(false);
   const [editCell, setEditCell] = useState<{ rowIdx: number; col: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ pkCol: string; pkVal: any; label: string } | null>(null);
@@ -200,7 +205,7 @@ export default function App() {
           onSwitch={switchTab}
           onClose={closeTab}
           onReorder={reorderTabs}
-          onNewTab={handleOpenConnections}
+          onNewTab={() => useStore.getState().openHomeTab()}
         />
 
         {isSessionView && (
@@ -210,11 +215,27 @@ export default function App() {
               activeView={activeView}
               activeTableName={activeTableName}
             />
+            {activeSessionId && !activeTableName && activeView === 'data' && (
+              <button
+                className="icon-btn"
+                title="Design Table (Create new table)"
+                onClick={() => setTableDesignOpen(true)}
+                style={{ marginLeft: 'auto' }}
+              >
+                <Plus size={15} />
+              </button>
+            )}
           </header>
         )}
 
         <div className="content-area">
           {/* ── Non-session tabs ── */}
+          {activeTab?.kind === 'home' && (
+            <HomeTab
+              onOpenConnections={handleOpenConnections}
+              onOpenFile={handleOpenDatabase}
+            />
+          )}
           {activeTab?.kind === 'connections' && (
             <ConnectionManager
               inline
@@ -319,6 +340,16 @@ export default function App() {
                     <Filter size={15} />
                     {filters.length > 0 && <span className="btn-badge">{filters.length}</span>}
                   </button>
+
+                  {pkCol && (
+                    <button
+                      className="icon-btn"
+                      title="Add row"
+                      onClick={() => setAddRowModalOpen(true)}
+                    >
+                      <Plus size={15} />
+                    </button>
+                  )}
                 </div>
 
                 {filterModalOpen && activeTableName && (
@@ -387,6 +418,31 @@ export default function App() {
           sortDirection={sortDirection}
         />
       </main>
+
+      {addRowModalOpen && tableDef && activeSessionId && (
+        <AddRowModal
+          sessionId={activeSessionId}
+          tableName={activeTableName!}
+          columns={tableDef.columns}
+          onInserted={() => {
+            setAddRowModalOpen(false);
+            useStore.getState().refreshTableData();
+          }}
+          onClose={() => setAddRowModalOpen(false)}
+        />
+      )}
+
+      {tableDesignOpen && activeSessionId && session && (
+        <TableDesignModal
+          sessionId={activeSessionId}
+          dbKind={session.kind ?? 'sqlite'}
+          onCreated={() => {
+            setTableDesignOpen(false);
+            useStore.getState().refreshSchema();
+          }}
+          onClose={() => setTableDesignOpen(false)}
+        />
+      )}
 
       {deleteTarget && (
         <ConfirmDialog

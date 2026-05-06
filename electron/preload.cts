@@ -50,6 +50,10 @@ contextBridge.exposeInMainWorld('dbstudio', {
   getStats: (sessionId: string) => invoke(sessionId, 'getStats'),
   runMaintenance: (sessionId: string, taskId: string) => invoke(sessionId, 'runMaintenance', taskId),
 
+  // ── DDL (Data Definition Language) ────────────────────────────────────
+  createTable: (sessionId: string, sql: string) =>
+    ipcRenderer.invoke('db:createTable', sessionId, sql),
+
   // ── Settings ──────────────────────────────────────────────────────────
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: unknown) => ipcRenderer.invoke('settings:set', patch),

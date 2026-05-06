@@ -78,6 +78,14 @@ export const commitTransaction = (sessionId: string) => api().commitTransaction(
 export const rollbackTransaction = (sessionId: string) => api().rollbackTransaction(sessionId);
 export const getTransactionStatus = (sessionId: string) => api().getTransactionStatus(sessionId);
 
+// ── DDL (Data Definition Language) ───────────────────────────────────────────
+
+export const createTable = async (sessionId: string, sql: string) => {
+  const result = await api().createTable(sessionId, sql);
+  if (!result.ok) throw new Error(result.error ?? 'Failed to create table');
+  return result;
+};
+
 // ── Maintenance ───────────────────────────────────────────────────────────────
 
 export const getStats = (sessionId: string) => api().getStats(sessionId);

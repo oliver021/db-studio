@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { X, Database, ServerCog, Settings2, Pin, Plus } from 'lucide-react';
+import { X, Database, ServerCog, Settings2, Pin, Plus, Home } from 'lucide-react';
 import type { Tab, ConnectionsTab } from '../../store/useStore';
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 }
 
 function tabIcon(tab: Tab) {
+  if (tab.kind === 'home')        return <Home size={13} />;
   if (tab.kind === 'connections') return <ServerCog size={13} />;
   if (tab.kind === 'settings')    return <Settings2 size={13} />;
   const k = (tab as Extract<Tab, { kind: 'session' }>).dbKind;
@@ -89,22 +90,24 @@ export default function TabBar({ tabs, activeTabId, onSwitch, onClose, onReorder
             }
           </div>
         ))}
-      </div>
 
-      {onNewTab && (
-        <button
-          className="tab-new-btn"
-          title="New connection (Ctrl+Shift+C)"
-          onClick={onNewTab}
-        >
-          <Plus size={13} />
-        </button>
-      )}
+        {/* Plus button inline after last tab */}
+        {onNewTab && (
+          <button
+            className="tab-new-btn"
+            title="Open home / new tab"
+            onClick={onNewTab}
+          >
+            <Plus size={13} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
 /** Helper to build a Connections tab — exported for consumers. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const CONNECTIONS_TAB: ConnectionsTab = {
   kind: 'connections',
   id: 'connections',

@@ -33,7 +33,16 @@ export interface SettingsTab {
   dirty: boolean;
 }
 
-export type Tab = SessionTab | ConnectionsTab | SettingsTab;
+/** A tab showing saved connections and entry point for new users. */
+export interface HomeTab {
+  kind: 'home';
+  id: 'home';
+  title: 'Home';
+  pinned: boolean;
+  dirty: boolean;
+}
+
+export type Tab = SessionTab | ConnectionsTab | SettingsTab | HomeTab;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -157,6 +166,7 @@ interface StoreState {
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   pinTab: (tabId: string, pinned?: boolean) => void;
   markTabDirty: (tabId: string, dirty?: boolean) => void;
+  openHomeTab: () => void;
 
   // ── Selectors (derived from active session) ──────────────────────────────
   activeSession: () => SessionState | null;
@@ -343,6 +353,23 @@ export const useStore = create<StoreState>((set, get) => {
       }));
     },
 
+    openHomeTab: () => {
+      set(state => {
+        const existing = state.tabs.find(t => t.id === 'home');
+        if (existing) {
+          return { activeTabId: 'home' };
+        }
+        const homeTab: HomeTab = {
+          kind: 'home',
+          id: 'home',
+          title: 'Home',
+          pinned: false,
+          dirty: false,
+        };
+        return { tabs: [...state.tabs, homeTab], activeTabId: 'home' };
+      });
+    },
+
     // flat compat defaults
     connectionString: null,
     schema: [],
@@ -372,9 +399,9 @@ export const useStore = create<StoreState>((set, get) => {
       const result = await db.openDialog();
       if (!result) return;
       if (!result.ok) throw new Error(result.error ?? 'Failed to open database');
-      const info: SessionInfo = { sessionId: result.sessionId, name: result.name, kind: 'sqlite' };
+      const info: SessionInfo = { sessionId: result.sessionId!, name: result.name!, kind: 'sqlite' };
       get().addSession(info);
-      get().switchSession(result.sessionId);
+      get().switchSession(result.sessionId!);
       await get().refreshSchema();
     },
 
@@ -382,9 +409,9 @@ export const useStore = create<StoreState>((set, get) => {
       const result = await db.openSession(config, name);
       if (!result.ok) throw new Error(result.error ?? 'Failed to connect');
       const kind = (config as any).kind ?? 'unknown';
-      const info: SessionInfo = { sessionId: result.sessionId, name, kind };
+      const info: SessionInfo = { sessionId: result.sessionId!, name, kind };
       get().addSession(info);
-      get().switchSession(result.sessionId);
+      get().switchSession(result.sessionId!);
       await get().refreshSchema();
     },
 

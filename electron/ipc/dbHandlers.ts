@@ -99,6 +99,17 @@ export function registerDbHandlers(
     }
   });
 
+  /** Execute a CREATE TABLE SQL statement. */
+  ipcMain.handle('db:createTable', async (_evt, sessionId: string, sql: string) => {
+    try {
+      const driver = registry.driver(sessionId);
+      const result = await driver.executeQuery(sql);
+      return { ok: true, result };
+    } catch (err) {
+      return { ok: false, error: friendlyError(err) };
+    }
+  });
+
   // ── Generic driver-op dispatcher ───────────────────────────────────────
 
   ipcMain.handle('db:invoke', async (_evt, rawPayload: unknown) => {
