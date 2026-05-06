@@ -1,7 +1,10 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import type { ConnectionRegistry } from '../ConnectionRegistry.js';
 import type { PaginationOptions, FilterRule } from '../drivers/Driver.js';
-import { ConnectionConfigSchema, DbInvokeSchema } from './schemas.js';
+import { ConnectionConfigSchema, DbInvokeSchema, ServerConfigSchema } from './schemas.js';
+import { PostgresDriver } from '../drivers/PostgresDriver.js';
+import { MysqlDriver } from '../drivers/MysqlDriver.js';
+import type { ConnectionConfig } from '../models/index.js';
 
 // ── Friendly error messages ────────────────────────────────────────────────
 
@@ -75,6 +78,25 @@ export function registerDbHandlers(
   ipcMain.handle('db:test', async (_evt, rawConfig: unknown) => {
     const config = ConnectionConfigSchema.parse(rawConfig);
     return registry.test(config);
+  });
+
+  /**
+   * List databases on a server without creating a persistent session.
+   * Accepts a server config that may omit the database field.
+   * Creates a temporary driver connection, fetches the list, then disconnects.
+   */
+  ipcMain.handle('db:listDatabases', async (_evt, rawConfig: unknown) => {
+    try {
+      const serverConfig = ServerConfigSchema.parse(rawConfig);
+      const driver = serverConfig.kind === 'postgres' ? new PostgresDriver() : new MysqlDriver();
+      // Connect without a specific database (falls back to system default)
+      await driver.connect(serverConfig as ConnectionConfig);
+      const databases = await driver.listDatabases!();
+      await driver.disconnect();
+      return { ok: true, databases };
+    } catch (err) {
+      return { ok: false, error: friendlyError(err) };
+    }
   });
 
   // ── Generic driver-op dispatcher ───────────────────────────────────────

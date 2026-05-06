@@ -57,11 +57,13 @@ export class MysqlDriver implements Driver {
   async connect(config: ConnectionConfig): Promise<void> {
     if (config.kind !== 'mysql') throw new Error('MysqlDriver only handles mysql configs');
     if (this.pool) await this.pool.end();
-    this.database = config.database;
+    this.database = config.database || '';
     this.pool = mysql.createPool({
       host:              config.host,
       port:              config.port,
-      database:          config.database,
+      // Omit database when empty — MySQL allows connecting at the server level
+      // without selecting a database, enabling SHOW DATABASES to be called.
+      ...(config.database ? { database: config.database } : {}),
       user:              config.user,
       password:          config.password,
       ssl:               config.ssl ? { rejectUnauthorized: false } : undefined,
@@ -74,8 +76,18 @@ export class MysqlDriver implements Driver {
     conn.release();
   }
 
+  async listDatabases(): Promise<string[]> {
+    const pool = this.requirePool();
+    const SYSTEM_DBS = new Set(['information_schema', 'mysql', 'performance_schema', 'sys']);
+    const [rows] = await pool.query('SHOW DATABASES') as any;
+    return (rows as any[])
+      .map((r: any) => String(r.Database ?? r.database ?? ''))
+      .filter((name: string) => name && !SYSTEM_DBS.has(name.toLowerCase()));
+  }
+
   async disconnect(): Promise<void> {
     if (this.txConn) {
+      // eslint-disable-next-line no-empty
       try { await this.txConn.query('ROLLBACK'); } catch {}
       this.txConn.release();
       this.txConn = null;

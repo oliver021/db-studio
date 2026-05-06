@@ -46,4 +46,11 @@ export interface Driver {
 
   getStats(): Promise<DbStats>;
   runMaintenance(taskId: string): Promise<{ success: boolean; message?: string; rows?: Record<string, unknown>[] }>;
+
+  /**
+   * List databases available on this server.
+   * Only implemented by server-based engines (Postgres, MySQL).
+   * SQLite has no concept of multiple databases, so this is optional.
+   */
+  listDatabases?(): Promise<string[]>;
 }

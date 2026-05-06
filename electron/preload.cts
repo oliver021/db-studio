@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('dbstudio', {
   closeSession: (sessionId: string) => ipcRenderer.invoke('db:close', sessionId),
   listSessions: () => ipcRenderer.invoke('db:list'),
   testConnection: (config: unknown) => ipcRenderer.invoke('db:test', config),
+  listDatabases:  (config: unknown) => ipcRenderer.invoke('db:listDatabases', config),
 
   // ── Schema & relations ────────────────────────────────────────────────
   getSchema: (sessionId: string) => invoke(sessionId, 'getSchema'),

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { FolderOpen, TestTube2, Save } from 'lucide-react';
+import { FolderOpen, TestTube2, Save, Database } from 'lucide-react';
 import * as dbClient from '../../services/dbClient';
+import { useStore } from '../../store/useStore';
 
 type DriverKind = 'sqlite' | 'postgres' | 'mysql';
 
@@ -39,9 +40,12 @@ const INITIAL: FormState = {
 interface Props {
   onConnected: (sessionId: string, name: string) => void;
   onCancel: () => void;
+  /** Called when the user triggers database-browse mode (no database specified). */
+  onBrowse?: () => void;
 }
 
-export default function NewConnectionForm({ onConnected, onCancel }: Props) {
+export default function NewConnectionForm({ onConnected, onCancel, onBrowse }: Props) {
+  const setBrowsingState = useStore(s => s.setBrowsingState);
   const [form, setForm] = useState<FormState>(INITIAL);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
   const [testMsg, setTestMsg] = useState('');
@@ -86,15 +90,50 @@ export default function NewConnectionForm({ onConnected, onCancel }: Props) {
     }
   };
 
+  /** True when the user left database blank for a server engine. */
+  const wantsBrowse = form.kind !== 'sqlite' && !form.database.trim();
+
+  const validateServer = () => {
+    if (!form.host.trim()) { setError('Host is required'); return false; }
+    if (!form.user.trim()) { setError('Username is required'); return false; }
+    return true;
+  };
+
+  /** Fetch database list and hand off to the sidebar browser. */
+  const handleBrowse = async () => {
+    if (!validateServer()) return;
+    setSaving(true);
+    setError('');
+    try {
+      const serverConfig = {
+        kind: form.kind as 'postgres' | 'mysql',
+        host: form.host,
+        port: Number(form.port),
+        user: form.user,
+        ...(form.password ? { password: form.password } : {}),
+        ...(form.ssl ? { ssl: true } : {}),
+      };
+      const databases = await dbClient.listDatabases(serverConfig);
+      setBrowsingState({
+        serverConfig: { ...serverConfig, ...(form.password ? { password: form.password } : {}) },
+        connectionName: `${form.user}@${form.host}`,
+        databases,
+      });
+      onBrowse?.();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to list databases');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleConnect = async () => {
-    if (!validate()) return;
+    if (!validateFull()) return;
     setSaving(true);
     setError('');
     try {
       const config = buildConfig();
       const name = form.name.trim() || defaultName();
-
-      // Save to persistent store then open session
       const saved = await dbClient.saveConnection(name, config, form.password || undefined);
       const result = await dbClient.connectSaved(saved.id);
       onConnected(result.sessionId, result.name ?? name);
@@ -105,9 +144,11 @@ export default function NewConnectionForm({ onConnected, onCancel }: Props) {
     }
   };
 
-  const validate = () => {
+  const validateFull = () => {
     if (form.kind === 'sqlite' && !form.path) { setError('Database file path is required'); return false; }
-    if (form.kind !== 'sqlite' && !form.database) { setError('Database name is required'); return false; }
+    if (form.kind !== 'sqlite' && !form.host.trim()) { setError('Host is required'); return false; }
+    if (form.kind !== 'sqlite' && !form.user.trim()) { setError('Username is required'); return false; }
+    if (form.kind !== 'sqlite' && !form.database.trim()) { setError('Database name is required'); return false; }
     return true;
   };
 
@@ -228,14 +269,23 @@ export default function NewConnectionForm({ onConnected, onCancel }: Props) {
 
       {/* Actions */}
       <div className="conn-form-actions">
-        <button className="conn-btn" type="button" onClick={handleTest} disabled={testStatus === 'testing'}>
-          <TestTube2 size={13} /> Test
-        </button>
+        {/* Hide Test button when about to browse (no database to test against) */}
+        {!wantsBrowse && (
+          <button className="conn-btn" type="button" onClick={handleTest} disabled={testStatus === 'testing'}>
+            <TestTube2 size={13} /> Test
+          </button>
+        )}
         <div className="conn-form-actions-right">
           <button className="conn-btn" type="button" onClick={onCancel}>Cancel</button>
-          <button className="conn-btn conn-btn--primary" type="button" onClick={handleConnect} disabled={saving}>
-            <Save size={13} /> {saving ? 'Connecting…' : 'Save & Connect'}
-          </button>
+          {wantsBrowse ? (
+            <button className="conn-btn conn-btn--primary" type="button" onClick={handleBrowse} disabled={saving}>
+              <Database size={13} /> {saving ? 'Fetching…' : 'Browse Databases'}
+            </button>
+          ) : (
+            <button className="conn-btn conn-btn--primary" type="button" onClick={handleConnect} disabled={saving}>
+              <Save size={13} /> {saving ? 'Connecting…' : 'Save & Connect'}
+            </button>
+          )}
         </div>
       </div>
     </div>

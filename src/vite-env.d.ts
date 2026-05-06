@@ -10,6 +10,7 @@ interface DbStudio {
   closeSession: (sessionId: string) => Promise<{ ok: boolean }>;
   listSessions: () => Promise<Array<{ sessionId: string; name: string; kind: string }>>;
   testConnection: (config: unknown) => Promise<{ ok: boolean; error?: string }>;
+  listDatabases: (config: unknown) => Promise<{ ok: boolean; databases?: string[]; error?: string }>;
 
   // Schema & relations
   getSchema: (sessionId: string) => Promise<any[]>;

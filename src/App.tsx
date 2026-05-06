@@ -47,6 +47,7 @@ export default function App() {
     visibleColumnsMap, setVisibleColumns, showAllColumns, setShowAllColumns,
     activeView, setActiveView,
     tabs, activeTabId, openTab, closeTab, switchTab, reorderTabs,
+    browsingState, setBrowsingState, connectToDatabase,
   } = useStore();
 
   const session = activeSession();
@@ -115,8 +116,20 @@ export default function App() {
     const { addSession, switchSession, refreshSchema } = useStore.getState();
     addSession({ sessionId, name, kind: 'unknown' });
     switchSession(sessionId);
+    closeTab('connections');
     await refreshSchema();
   };
+
+  /** User picked a database from the sidebar browser → open full session. */
+  const handleSelectDatabase = async (dbName: string) => {
+    try {
+      await connectToDatabase(dbName);
+    } catch (err: any) {
+      toast(err?.message ?? 'Failed to connect', 'error');
+    }
+  };
+
+  const handleCancelBrowse = () => setBrowsingState(null);
 
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);
@@ -175,6 +188,9 @@ export default function App() {
         views={isSessionView ? views : []}
         activeTableName={activeTableName}
         onTableSelect={setActiveTable}
+        browsingState={browsingState}
+        onSelectDatabase={handleSelectDatabase}
+        onCancelBrowse={handleCancelBrowse}
       />
 
       <main className="main-content">
@@ -203,6 +219,7 @@ export default function App() {
             <ConnectionManager
               inline
               onConnected={handleConnectionManagerConnect}
+              onBrowse={() => closeTab('connections')}
             />
           )}
           {activeTab?.kind === 'settings' && (

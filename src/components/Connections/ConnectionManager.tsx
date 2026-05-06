@@ -18,9 +18,11 @@ interface Props {
   onClose?: () => void;
   /** When true, renders as page content instead of a modal overlay. */
   inline?: boolean;
+  /** Called when the user triggers database-browse mode (no database specified). */
+  onBrowse?: () => void;
 }
 
-export default function ConnectionManager({ onConnected, onClose, inline = false }: Props) {
+export default function ConnectionManager({ onConnected, onClose, inline = false, onBrowse }: Props) {
   const [connections, setConnections] = useState<SavedConnection[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export default function ConnectionManager({ onConnected, onClose, inline = false
 
   const timeAgo = (iso?: string) => {
     if (!iso) return null;
+    // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'just now';
@@ -88,6 +91,10 @@ export default function ConnectionManager({ onConnected, onClose, inline = false
                   load();
                 }}
                 onCancel={() => setShowForm(false)}
+                onBrowse={() => {
+                  setShowForm(false);
+                  onBrowse?.();
+                }}
               />
             </motion.div>
           ) : (

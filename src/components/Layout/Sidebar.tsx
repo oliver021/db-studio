@@ -1,5 +1,6 @@
-import { Database, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck, ServerCog, Settings2 } from 'lucide-react';
-import type { Capabilities, ActiveView } from '../../store/useStore';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Database, TerminalSquare, GitBranch, Layers, Table2, Eye, ShieldCheck, ServerCog, Settings2, HardDrive, X } from 'lucide-react';
+import type { Capabilities, ActiveView, BrowsingState } from '../../store/useStore';
 
 interface SidebarProps {
   /** sessionId of the active connection (null = no connection). */
@@ -14,6 +15,10 @@ interface SidebarProps {
   views: any[];
   activeTableName: string | null;
   onTableSelect: (name: string) => void;
+  /** Set when user connected to a server without choosing a database yet. */
+  browsingState: BrowsingState | null;
+  onSelectDatabase: (dbName: string) => void;
+  onCancelBrowse: () => void;
 }
 
 export default function Sidebar({
@@ -28,6 +33,9 @@ export default function Sidebar({
   views,
   activeTableName,
   onTableSelect,
+  browsingState,
+  onSelectDatabase,
+  onCancelBrowse,
 }: SidebarProps) {
   const showMaintenance = !!capabilities?.hasMaintenance;
 
@@ -49,7 +57,39 @@ export default function Sidebar({
       </div>
 
       <nav className="sidebar-nav">
-        {connectionString && (
+        {/* ── Database browser mode ─────────────────────────────────── */}
+        {browsingState && (
+          <div className="nav-section">
+            <h2 className="nav-section-title nav-section-title--browsing">
+              <HardDrive size={12} />
+              {browsingState.connectionName}
+              <button
+                className="nav-browse-cancel"
+                title="Cancel"
+                onClick={onCancelBrowse}
+              >
+                <X size={11} />
+              </button>
+            </h2>
+            <p className="nav-browse-hint">Select a database to connect</p>
+            <ul className="nav-list">
+              {browsingState.databases.map(dbName => (
+                <li key={dbName}>
+                  <button
+                    className="nav-item nav-item--db"
+                    onClick={() => onSelectDatabase(dbName)}
+                  >
+                    <Database size={13} className="nav-item-icon" />
+                    <span className="nav-item-label">{dbName}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* ── Session nav items (only when session is open) ─────────── */}
+        {connectionString && !browsingState && (
           <div className="nav-section">
             <ul className="nav-list">
               <li>
@@ -85,7 +125,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {tables.length > 0 && (
+        {!browsingState && tables.length > 0 && (
           <div className="nav-section">
             <h2 className="nav-section-title">
               <Layers size={12} /> Tables <span className="nav-count">{tables.length}</span>
@@ -106,7 +146,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {views.length > 0 && (
+        {!browsingState && views.length > 0 && (
           <div className="nav-section">
             <h2 className="nav-section-title">
               <Eye size={12} /> Views <span className="nav-count">{views.length}</span>
@@ -129,7 +169,15 @@ export default function Sidebar({
       </nav>
 
       <div className="sidebar-footer">
-        {connectionString && (
+        {browsingState && (
+          <div className="connection-indicator">
+            <span className="status-dot" style={{ background: '#f59e0b', boxShadow: '0 0 8px rgba(245,158,11,0.4)' }} />
+            <span className="connection-path">
+              {browsingState.serverConfig.kind} · {browsingState.serverConfig.host}
+            </span>
+          </div>
+        )}
+        {connectionString && !browsingState && (
           <div className="connection-indicator">
             <span className="status-dot connected" />
             <span className="connection-path" title={connectionString}>

@@ -37,6 +37,33 @@ export const ConnectionConfigSchema = z.discriminatedUnion('kind', [
   MysqlConfigSchema,
 ]);
 
+// ── Server-only configs (no database required) ────────────────────────────────
+// Used by db:listDatabases to enumerate databases before a specific one
+// has been chosen. These intentionally omit the `database` field.
+
+export const PostgresServerConfigSchema = z.object({
+  kind: z.literal('postgres'),
+  host: z.string().min(1, 'host is required'),
+  port: z.number().int().min(1).max(65535),
+  user: z.string().min(1, 'user is required'),
+  password: z.string().optional(),
+  ssl: z.boolean().optional(),
+});
+
+export const MysqlServerConfigSchema = z.object({
+  kind: z.literal('mysql'),
+  host: z.string().min(1, 'host is required'),
+  port: z.number().int().min(1).max(65535),
+  user: z.string().min(1, 'user is required'),
+  password: z.string().optional(),
+  ssl: z.boolean().optional(),
+});
+
+export const ServerConfigSchema = z.discriminatedUnion('kind', [
+  PostgresServerConfigSchema,
+  MysqlServerConfigSchema,
+]);
+
 // ── db:invoke payload ─────────────────────────────────────────────────────────
 
 export const DbInvokeSchema = z.object({

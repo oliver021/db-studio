@@ -62,6 +62,26 @@ export interface MaintenanceTask {
 
 export type ActiveView = 'data' | 'query' | 'schema-graph' | 'maintenance';
 
+/**
+ * Transient state used when the user connects to a server without specifying
+ * a database. The sidebar shows the database list until the user picks one.
+ */
+export interface BrowsingState {
+  /** Server-level config (no database field). */
+  serverConfig: {
+    kind: 'postgres' | 'mysql';
+    host: string;
+    port: number;
+    user: string;
+    password?: string;
+    ssl?: boolean;
+  };
+  /** Display label (e.g. "user@host"). */
+  connectionName: string;
+  /** Databases available on the server. */
+  databases: string[];
+}
+
 // ── Per-session state ────────────────────────────────────────────────────────
 
 interface SessionState {
@@ -119,6 +139,12 @@ function newSession(info: SessionInfo): SessionState {
 interface StoreState {
   sessions: Record<string, SessionState>;
   activeSessionId: string | null;
+
+  // ── Database-browser state (server connected, no DB selected yet) ────────
+  browsingState: BrowsingState | null;
+  setBrowsingState: (state: BrowsingState | null) => void;
+  /** Connect to a specific database chosen from the browser. */
+  connectToDatabase: (dbName: string) => Promise<void>;
 
   // ── Tab state ────────────────────────────────────────────────────────────
   tabs: Tab[];
@@ -229,6 +255,34 @@ export const useStore = create<StoreState>((set, get) => {
   return {
     sessions: {},
     activeSessionId: null,
+
+    // ── Database-browser state ───────────────────────────────────────────────
+    browsingState: null,
+
+    setBrowsingState: (state) => set({ browsingState: state }),
+
+    connectToDatabase: async (dbName) => {
+      const { browsingState, addSession, switchSession, refreshSchema, closeTab } = get();
+      if (!browsingState) return;
+      const { serverConfig, connectionName } = browsingState;
+      const fullConfig = { ...serverConfig, database: dbName };
+      const name = `${dbName}@${serverConfig.host}`;
+      try {
+        // Save this specific database connection, then open it
+        const saved = await db.saveConnection(name, fullConfig, serverConfig.password);
+        const result = await db.connectSaved(saved.id);
+        // Clear browsing state before adding session so sidebar switches cleanly
+        set({ browsingState: null });
+        addSession({ sessionId: result.sessionId, name: result.name ?? name, kind: serverConfig.kind });
+        switchSession(result.sessionId);
+        // Close connections tab if open
+        closeTab('connections');
+        void connectionName; // used for display, kept in scope
+        await refreshSchema();
+      } catch (err: any) {
+        throw new Error(err?.message ?? 'Failed to connect', { cause: err });
+      }
+    },
 
     // ── Tab initial state ────────────────────────────────────────────────────
     tabs: [],

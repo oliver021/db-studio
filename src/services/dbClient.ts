@@ -14,6 +14,12 @@ export const closeSession = (sessionId: string) => api().closeSession(sessionId)
 export const listSessions = () => api().listSessions();
 export const testConnection = (config: unknown) => api().testConnection(config);
 
+export const listDatabases = async (config: unknown): Promise<string[]> => {
+  const result = await api().listDatabases(config);
+  if (!result.ok) throw new Error(result.error ?? 'Failed to list databases');
+  return result.databases ?? [];
+};
+
 // ── Schema ──────────────────────────────────────────────────────────────────
 
 export const getSchema = (sessionId: string) => api().getSchema(sessionId);

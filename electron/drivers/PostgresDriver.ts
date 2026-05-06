@@ -57,7 +57,9 @@ export class PostgresDriver implements Driver {
     this.pool = new Pool({
       host:     config.host,
       port:     config.port,
-      database: config.database,
+      // Fall back to 'postgres' system database when no specific database is
+      // provided — used for server-level connections that list databases.
+      database: config.database || 'postgres',
       user:     config.user,
       password: config.password,
       ssl:      config.ssl ? { rejectUnauthorized: false } : false,
@@ -70,8 +72,19 @@ export class PostgresDriver implements Driver {
     client.release();
   }
 
+  async listDatabases(): Promise<string[]> {
+    const pool = this.requirePool();
+    const result = await pool.query(
+      `SELECT datname FROM pg_database
+       WHERE datistemplate = false AND datallowconn = true
+       ORDER BY datname`,
+    );
+    return (result.rows as { datname: string }[]).map(r => r.datname);
+  }
+
   async disconnect(): Promise<void> {
     if (this.txClient) {
+      // eslint-disable-next-line no-empty
       try { await this.txClient.query('ROLLBACK'); } catch {}
       this.txClient.release();
       this.txClient = null;
